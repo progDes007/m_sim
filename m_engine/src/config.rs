@@ -1,6 +1,2 @@
-
-#[cfg(feature = "single-precision")]
-pub type Real = f64;
-
-#[cfg(not(feature = "single-precision"))]
-pub type Real = f32;
+pub const DISTANCE_EPS: f64 = 1e-8;
+pub const DISTANCE_EPS_SQ: f64 = DISTANCE_EPS * DISTANCE_EPS;

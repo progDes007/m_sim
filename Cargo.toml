@@ -1,2 +1,3 @@
 [workspace]
 members = ["m_engine", "m_runner"]
+resolver = "2"
