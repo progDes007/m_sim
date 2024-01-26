@@ -1,0 +1,12 @@
+[package]
+name = "m_engine"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+# Enable this feature for single precision float
+#single-precision = []
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
