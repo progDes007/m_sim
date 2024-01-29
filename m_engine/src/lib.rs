@@ -1,8 +1,17 @@
-pub mod config;
+pub mod common;
 pub mod vec2;
 pub mod math_core;
+pub mod particle;
+pub mod particle_class;
+pub mod integrator;
+pub mod velocity_verlet_integrator;
 
-pub use config::*;
+pub use common::*;
+pub use vec2::*;
+pub use particle::*;
+pub use particle_class::*;
+pub use integrator::*;
+pub use velocity_verlet_integrator::*;
 
 
 pub fn _some_function() {
