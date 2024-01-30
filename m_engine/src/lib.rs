@@ -5,6 +5,7 @@ pub mod particle;
 pub mod particle_class;
 pub mod integrator;
 pub mod velocity_verlet_integrator;
+pub mod generators;
 
 pub use common::*;
 pub use vec2::*;

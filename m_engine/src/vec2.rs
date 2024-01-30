@@ -41,6 +41,14 @@ impl Vec2 {
         self.x * other.y - self.y * other.x
     }
 
+    pub fn rotated_90_ccw(&self) -> Self {
+        Self::new(-self.y, self.x)
+    }
+
+    pub fn rotated_90_cw(&self) -> Self {
+        Self::new(self.y, -self.x)
+    }
+
 }
 
 impl Add for Vec2 {

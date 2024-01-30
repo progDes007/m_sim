@@ -10,7 +10,7 @@ pub struct Particle {
 }
 
 impl Particle {
-    pub fn new(position: Vec2, velocity: Vec2, class: u8) -> Self {
+    pub fn new(position: Vec2, velocity: Vec2, class: ClassId) -> Self {
         Particle {
             position,
             velocity,
