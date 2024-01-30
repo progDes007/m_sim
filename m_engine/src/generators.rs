@@ -54,8 +54,7 @@ mod tests {
         let size_secondary = 2.0;
         let num_cells_primary = 1;
         let num_cells_secondary = 1;
-        //let initial_velocity = constant_velocity(Vec2::new(1.0, 2.0));
-        let initial_velocity = |_pos: Vec2| -> Vec2 {Vec2::new(1.0, 2.0)};
+        let initial_velocity = constant_velocity(Vec2::new(1.0, 2.0));
         let class_id = 2;
         let particles = generate_grid(
             origin,
