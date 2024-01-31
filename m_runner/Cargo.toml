@@ -8,3 +8,4 @@ edition = "2021"
 
 [dependencies]
 m_engine = { path = "../m_engine" }
+m_front = { path = "../m_front"}

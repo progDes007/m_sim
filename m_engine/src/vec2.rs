@@ -1,4 +1,4 @@
-use crate::common::*;
+use crate::prelude::*;
 use crate::math_core::*;
 use std::ops::{Add, Sub, Mul, Div, Neg, AddAssign, SubAssign, MulAssign, DivAssign};
 

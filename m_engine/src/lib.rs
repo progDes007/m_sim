@@ -1,4 +1,4 @@
-pub mod common;
+pub mod prelude;
 pub mod vec2;
 pub mod math_core;
 pub mod particle;
@@ -7,7 +7,7 @@ pub mod integrator;
 pub mod velocity_verlet_integrator;
 pub mod generators;
 
-pub use common::*;
+pub use prelude::*;
 pub use vec2::*;
 pub use particle::*;
 pub use particle_class::*;
