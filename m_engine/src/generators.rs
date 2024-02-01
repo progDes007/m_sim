@@ -1,4 +1,5 @@
-use crate::{Particle, Vec2, ClassId};
+use crate::prelude::*;
+use crate::{Particle, Vec2};
 
 pub fn generate_grid(
     origin: Vec2,
@@ -41,7 +42,6 @@ pub fn constant_velocity(velocity: Vec2) -> impl Fn(Vec2) -> Vec2 {
 
 #[cfg(test)]
 mod tests {
-    use crate::DISTANCE_EPS;
 
     use super::*;
 

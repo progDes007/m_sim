@@ -7,15 +7,8 @@ pub mod integrator;
 pub mod velocity_verlet_integrator;
 pub mod generators;
 
-pub use prelude::*;
-pub use vec2::*;
-pub use particle::*;
-pub use particle_class::*;
-pub use integrator::*;
-pub use velocity_verlet_integrator::*;
-
-
-pub fn _some_function() {
-    let _f: f64 = 0.0;
-    
-}
+pub use vec2::Vec2;
+pub use particle::Particle;
+pub use particle_class::ParticleClass;
+pub use integrator::Integrator;
+pub use velocity_verlet_integrator::VelocityVerletIntegrator;

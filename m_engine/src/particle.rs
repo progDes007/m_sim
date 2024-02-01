@@ -1,6 +1,6 @@
 use std::fmt::Debug;
+use crate::prelude::*;
 use crate::Vec2;
-use crate::ClassId;
 
 #[derive(Copy, Clone, Debug)]
 pub struct Particle {

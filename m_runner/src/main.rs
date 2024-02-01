@@ -1,16 +1,9 @@
-use m_engine::vec2;
 use m_engine::generators;
+use m_engine::Vec2;
+use m_front::BevyFront;
+
 fn main() {
-    let _v = vec2::Vec2::new(0.0, 0.0);
-    generators::generate_grid(
-        vec2::Vec2::new(0.0, 0.0),
-        vec2::Vec2::new(1.0, 0.0),
-        1.0,
-        1.0,
-        1,
-        1,
-        generators::constant_velocity(vec2::Vec2::new(1.0, 2.0)),
-        2,
-    );
-    
+
+    let front = BevyFront::new();
+    front.run();
 }
