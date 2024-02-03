@@ -1,7 +1,9 @@
 use std::collections::BTreeMap;
 use std::sync::mpsc::Receiver;
+use std::sync::Mutex;
 use std::time::Duration;
 use m_engine::Particle;
+use bevy::prelude::Component;
 
 /// Represents information about displayed frame
 #[derive(Debug, Clone)]
@@ -20,22 +22,22 @@ impl Frame {
 /// Buffer that stores all the calculated frames.
 /// Frontend can display any of calculated frames. Frames are calculated
 /// externally and sent to this buffer through a channel.
-#[derive(Debug)]
+#[derive(Debug, Component)]
 pub struct FramesTimeline {
     frames: BTreeMap<Duration, Frame>,
-    frames_rx: Receiver<(Duration, Frame)>,
+    frames_rx: Mutex<Receiver<(Duration, Frame)>>,
 }
 
 impl FramesTimeline {
     pub fn new(frames_rx: Receiver<(Duration, Frame)>) -> Self {
         FramesTimeline {
             frames: BTreeMap::new(),
-            frames_rx,
+            frames_rx: Mutex::new(frames_rx),
         }
     }
 
     pub fn poll_frames(&mut self) {
-        while let Ok((timestamp, frame)) = self.frames_rx.try_recv() {
+        while let Ok((timestamp, frame)) = self.frames_rx.lock().unwrap().try_recv() {
             self.frames.insert(timestamp, frame);
         }
     }
