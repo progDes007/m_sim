@@ -5,7 +5,7 @@ use std::time::Duration;
 
 /// This component stores the state of simulation playback
 #[derive(Debug, Clone, Component)]
-pub struct PlaybackControl {
+pub(crate) struct PlaybackControl {
     is_playing: bool,
     current_time: Duration,
 }

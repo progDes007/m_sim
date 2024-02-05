@@ -1,6 +1,6 @@
 use m_front::BevyFront;
-use m_front::Frame;
-use m_front::FramesTimeline;
+use m_front::components::Frame;
+use m_front::components::FramesTimeline;
 use m_front::ParticleSkin;
 
 use std::sync::mpsc;

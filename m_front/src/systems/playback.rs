@@ -1,6 +1,6 @@
-use crate::playback_control::PlaybackControl;
-use crate::sim_info::SimInfo;
-use crate::FramesTimeline;
+use crate::components::PlaybackControl;
+use crate::components::SimInfo;
+use crate::components::FramesTimeline;
 use bevy::prelude::Query;
 use bevy::prelude::Res;
 use bevy::prelude::Time;

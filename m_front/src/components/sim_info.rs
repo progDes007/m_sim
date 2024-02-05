@@ -4,7 +4,7 @@ use std::time::Duration;
 
 /// This component contains general simulation information
 #[derive(Debug, Clone, Component)]
-pub struct SimInfo {
+pub(crate) struct SimInfo {
     total_duration: Duration,
 }
 

@@ -1,8 +1,8 @@
-use crate::FramesTimeline;
 use crate::ParticleSkin;
-use crate::playback_control::PlaybackControl;
-use crate::sim_info::SimInfo;
-use crate::sys_playback;
+use crate::components::FramesTimeline;
+use crate::components::PlaybackControl;
+use crate::components::SimInfo;
+use crate::systems;
 use bevy::app::App;
 use bevy::prelude::*;
 use bevy::DefaultPlugins;
@@ -19,10 +19,10 @@ impl BevyFront {
     pub fn new(timeline: FramesTimeline, total_duration : Duration) -> Self {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins);
-        
-        app.add_systems(Startup, sys_playback::start_playback);
+
+        app.add_systems(Startup, systems::playback::start_playback);
         app.add_systems(PreUpdate,
-             (sys_playback::poll_frames, sys_playback::advance_time));
+             (systems::playback::poll_frames, systems::playback::advance_time));
         
         // Spawn entity for timeline
         app.world.spawn(timeline);
