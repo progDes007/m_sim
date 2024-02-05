@@ -25,6 +25,7 @@ impl Frame {
 #[derive(Debug, Component)]
 pub struct FramesTimeline {
     frames: BTreeMap<Duration, Frame>,
+    // Protected by mutex because of Component must be Sync.
     frames_rx: Mutex<Receiver<(Duration, Frame)>>,
 }
 
@@ -46,8 +47,8 @@ impl FramesTimeline {
         self.frames.len()
     }
 
-    pub fn last_frame(&self) -> Option<&Frame> {
-        self.frames.values().last()
+    pub fn last_frame(&self) -> Option<(Duration, &Frame)> {
+        self.frames.iter().last().map(|(ts, frame)| (*ts, frame))
     }
 
     pub fn last_frame_for(&self, timestamp: Duration) -> Option<(Duration, &Frame)> {
