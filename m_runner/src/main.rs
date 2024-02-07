@@ -1,16 +1,13 @@
 use m_front::BevyFront;
 use m_front::components::Frame;
-use m_front::components::FramesTimeline;
 use m_front::ParticleSkin;
 
 use std::sync::mpsc;
 use std::time::Duration;
 
 fn main() {
-    let (frames_tx, frames_rx) = mpsc::channel();
-    let timeline = FramesTimeline::new(frames_rx);
-    
-    let mut front = BevyFront::new(timeline, Duration::from_secs(5));
+    let (frames_tx, frames_rx) = mpsc::channel();   
+    let mut front = BevyFront::new(frames_rx, Duration::from_secs(5));
     
     // add some skins for testing
     front.define_class_skin(0,  ParticleSkin::new(10.0, bevy::prelude::Color::RED));

@@ -1,4 +1,5 @@
 use crate::ParticleSkin;
+use crate::Frame;
 use crate::components::FramesTimeline;
 use crate::components::PlaybackControl;
 use crate::components::SimInfo;
@@ -9,6 +10,7 @@ use bevy::DefaultPlugins;
 use m_engine::prelude::*;
 use std::collections::HashMap;
 use std::time::Duration;
+use std::sync::mpsc::Receiver;
 
 pub struct BevyFront {
     particle_skins: HashMap<ClassId, ParticleSkin>,
@@ -16,7 +18,7 @@ pub struct BevyFront {
 }
 
 impl BevyFront {
-    pub fn new(timeline: FramesTimeline, total_duration : Duration) -> Self {
+    pub fn new(frames_rx: Receiver<(Duration, Frame)>, total_duration : Duration) -> Self {
         let mut app = App::new();
         app.add_plugins(DefaultPlugins);
 
@@ -25,7 +27,7 @@ impl BevyFront {
              (systems::playback::poll_frames, systems::playback::advance_time));
         
         // Spawn entity for timeline
-        app.world.spawn(timeline);
+        app.world.spawn(FramesTimeline::new(frames_rx));
         // Spawn entity for sim info
         app.world.spawn(SimInfo::new(total_duration));
         // Spawn entity for playback control

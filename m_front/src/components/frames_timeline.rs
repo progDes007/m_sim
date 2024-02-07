@@ -1,29 +1,15 @@
+use crate::Frame;
 use std::collections::BTreeMap;
 use std::sync::mpsc::Receiver;
 use std::sync::Mutex;
 use std::time::Duration;
-use m_engine::Particle;
 use bevy::prelude::Component;
-
-/// Represents information about displayed frame
-#[derive(Debug, Clone)]
-pub struct Frame {
-    pub particles: Vec<Particle>,   
-}
-
-impl Frame {
-    pub fn new(particles: Vec<Particle>) -> Self {
-        Frame {
-            particles,
-        }
-    }
-}
 
 /// Buffer that stores all the calculated frames.
 /// Frontend can display any of calculated frames. Frames are calculated
 /// externally and sent to this buffer through a channel.
 #[derive(Debug, Component)]
-pub struct FramesTimeline {
+pub(crate) struct FramesTimeline {
     frames: BTreeMap<Duration, Frame>,
     // Protected by mutex because of Component must be Sync.
     frames_rx: Mutex<Receiver<(Duration, Frame)>>,
