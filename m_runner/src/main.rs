@@ -14,10 +14,11 @@ fn main() {
 
     // add some frames for testing
     for i in 0..=500 {
-        let particles = vec![m_engine::Particle::new(
+        let mut particles = vec![m_engine::Particle::new(
             m_engine::Vec2::new(i as f64, i as f64), 
             m_engine::Vec2::new(i as f64, i as f64), 
             0)];
+        if i % 2 == 0 {particles = vec![];} // for testing
         frames_tx.send((std::time::Duration::from_millis(i * 10 as u64), Frame::new(particles))).unwrap();
     }
     

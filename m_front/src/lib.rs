@@ -9,7 +9,8 @@ pub use frame::Frame;
 
 mod systems
 {
-    pub mod playback;
+    pub(crate) mod playback;
+    pub(crate) mod particles_update;
 }
 
 mod resources
@@ -23,8 +24,10 @@ mod components
 {
     pub(crate) mod frames_timeline;
     pub(crate) mod playback_control;
+    pub(crate) mod particle;
 
     pub(crate) use frames_timeline::FramesTimeline;
     pub(crate) use playback_control::PlaybackControl;
+    pub(crate) use particle::Particle;
 }
 
