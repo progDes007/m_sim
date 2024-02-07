@@ -12,14 +12,19 @@ mod systems
     pub mod playback;
 }
 
-pub mod components
+mod resources
+{
+    pub(crate) mod sim_info;
+
+    pub(crate) use sim_info::SimInfo;
+}
+
+mod components
 {
     pub(crate) mod frames_timeline;
     pub(crate) mod playback_control;
-    pub(crate) mod sim_info;
 
     pub(crate) use frames_timeline::FramesTimeline;
     pub(crate) use playback_control::PlaybackControl;
-    pub(crate) use sim_info::SimInfo;
 }
 

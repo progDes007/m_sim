@@ -1,6 +1,6 @@
 use crate::components::PlaybackControl;
-use crate::components::SimInfo;
 use crate::components::FramesTimeline;
+use crate::resources::SimInfo;
 use bevy::prelude::Query;
 use bevy::prelude::Res;
 use bevy::prelude::Time;
@@ -16,14 +16,13 @@ pub fn poll_frames(mut query: Query<&mut FramesTimeline>) {
 pub fn advance_time(
     time: Res<Time>,
     mut playback_query: Query<&mut PlaybackControl>,
-    sim_info_query: Query<&SimInfo>,
+    sim_info: Res<SimInfo>,
     timeline_query: Query<&FramesTimeline>,
 ) {
     // get passed time
     let time_passed = std::time::Duration::from_secs_f64(time.delta_seconds_f64());
     
     // Collect sim info, timeline and playback control
-    let sim_info = sim_info_query.single();
     let mut playback_control = playback_query.single_mut();
     let timeline = timeline_query.single();
 

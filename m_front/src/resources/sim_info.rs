@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use std::time::Duration;
 
 /// This component contains general simulation information
-#[derive(Debug, Clone, Component)]
+#[derive(Debug, Clone, Resource)]
 pub(crate) struct SimInfo {
     total_duration: Duration,
 }
