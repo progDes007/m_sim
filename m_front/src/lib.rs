@@ -3,7 +3,6 @@ pub mod bevy_front;
 pub mod particle_skin;
 pub mod frame;
 
-pub use bevy_front::BevyFront;
 pub use particle_skin::ParticleSkin;
 pub use frame::Frame;
 
