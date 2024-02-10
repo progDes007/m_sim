@@ -16,8 +16,11 @@ mod systems
 mod resources
 {
     pub(crate) mod sim_info;
+    pub(crate) mod graphic_resources;
 
     pub(crate) use sim_info::SimInfo;
+    pub(crate) use graphic_resources::GlobalMeshes;
+    pub(crate) use graphic_resources::GlobalMaterials;
 }
 
 mod components
