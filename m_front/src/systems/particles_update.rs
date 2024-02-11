@@ -49,3 +49,25 @@ pub fn particle_spawn_despawn(
         }
     }
 }
+
+pub fn particle_move(
+    mut transforms: Query<&mut Transform, With<Particle>>,
+    playback_control: Query<&PlaybackControl>,
+    timeline: Query<&FramesTimeline>,
+) {
+        // Get current time
+        let current_time = playback_control.single().current_time();
+        // Get current frame
+        let current_frame_opt = timeline.single().last_frame_for(current_time);
+        if current_frame_opt.is_none() { return };
+        let current_frame = current_frame_opt.as_ref().unwrap().1;
+        // Check that spawn despawn worked as expected
+        assert_eq!(current_frame.particles.len(), transforms.iter().count());
+        // Now loop and copy positions
+        for (i, mut transform) in transforms.iter_mut().enumerate() {
+            let particle = &current_frame.particles[i];
+            *transform = Transform::from_translation(Vec3::new(
+                particle.position.x as f32, particle.position.y as f32, 0.0));
+
+        }
+}

@@ -28,9 +28,14 @@ pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration) {
         PreUpdate,
         (
             systems::playback::poll_frames,
-            systems::playback::advance_time,
-            systems::particles_update::particle_spawn_despawn,
+            systems::playback::advance_time.after(systems::playback::poll_frames),
+            systems::particles_update::particle_spawn_despawn.after(systems::playback::advance_time),
         ),
+    );
+    app.add_systems(
+        Update,
+        systems::particles_update::particle_move
+        
     );
 
     // Add resources
@@ -56,11 +61,12 @@ fn setup(
     commands.spawn(PlaybackControl::new());
 
     // Spawn orthogonal camera
-    let camera_bundle = Camera2dBundle::default();
+    let mut camera_bundle = Camera2dBundle::default();
+    camera_bundle.projection.scale = 1.0 / 10.0;
     commands.spawn(camera_bundle);
 
     // Prepare global meshes
-    let unit_circle_mesh = mesh_assets.add(Mesh::from(shape::Circle::new(40.0)));
+    let unit_circle_mesh = mesh_assets.add(Mesh::from(shape::Circle::new(1.0)));
     global_mesh_res.unit_circle = Some(unit_circle_mesh);
 
     // Prepare global materials
