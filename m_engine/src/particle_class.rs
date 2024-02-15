@@ -7,9 +7,9 @@ pub struct ParticleClass {
 
 impl ParticleClass {
     // Constructor
-    pub fn new(name: String, mass: f64, radius: f64) -> Self {
+    pub fn new(name: &str, mass: f64, radius: f64) -> Self {
         ParticleClass {
-            name,
+            name: name.to_string(),
             mass,
             radius,
         }
