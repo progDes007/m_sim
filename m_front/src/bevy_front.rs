@@ -12,8 +12,6 @@ use bevy::DefaultPlugins;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
-use bevy::sprite::MaterialMesh2dBundle;
-
 pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration) {
     // Work around the known bevy bug:
     // https://github.com/bevyengine/bevy/issues/8395

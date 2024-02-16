@@ -17,6 +17,10 @@ impl Vec2 {
         Self { x, y }
     }
 
+    pub fn from_angle_rad(angle: f64) -> Self {
+        Self::new(angle.cos(), angle.sin())
+    }
+
     pub fn length(&self) -> f64 {
         (self.x.powi(2) + self.y.powi(2)).sqrt()
     }

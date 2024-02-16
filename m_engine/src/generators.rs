@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::{Particle, Vec2};
+use rand;
 
 pub fn generate_grid(
     origin: Vec2,
@@ -37,6 +38,15 @@ pub fn generate_grid(
 
 pub fn constant_velocity(velocity: Vec2) -> impl Fn(Vec2) -> Vec2 {
     move |_| velocity 
+}
+
+pub fn random_velocity(max_magnitude: f64) -> impl Fn(Vec2) -> Vec2 {
+    move |_| {
+        let angle = rand::random::<f64>() * 2.0 * std::f64::consts::PI;
+        let magnitude = rand::random::<f64>() * max_magnitude;
+        
+        Vec2::from_angle_rad(angle) * magnitude
+    }
 }
 
 

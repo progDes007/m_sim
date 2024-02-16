@@ -16,8 +16,8 @@ impl Simulation {
         }
     }
 
-    pub fn particle_class_for(&self, class_id: ClassId) -> Option<&ParticleClass> {
-        self.particle_classes.get(&class_id)
+    pub fn particle_classes(&self) -> &HashMap<ClassId, ParticleClass> {
+        &self.particle_classes
     }
 
     pub fn particles(&self) -> &[Particle] {

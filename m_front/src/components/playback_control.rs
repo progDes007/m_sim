@@ -30,7 +30,7 @@ impl PlaybackControl {
         self.is_playing = is_playing;
     }
 
-    pub fn seek(&mut self, current_time: Duration) {
+    pub fn _seek(&mut self, current_time: Duration) {
         self.current_time = current_time;
     }
 

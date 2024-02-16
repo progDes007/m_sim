@@ -1,6 +1,9 @@
+use crate::prelude::*;
 use crate::Particle;
 use crate::ParticleClass;
+use std::collections::HashMap;
+use std::time::Duration;
 
 pub trait Integrator {
-    fn step(&mut self, particles: &mut [Particle], particle_classes: &[ParticleClass], time_step: f64);
+    fn step(&self, particles: &mut [Particle], particle_classes: &HashMap<ClassId, ParticleClass>, time_step: Duration);
 }
