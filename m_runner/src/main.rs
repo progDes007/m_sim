@@ -1,19 +1,25 @@
 use m_front::bevy_front;
-use m_front::Frame;
+use m_front::{Frame, ParticleSkin};
 use m_engine::{Vec2, ParticleClass, Simulation, Integrator, VelocityVerletIntegrator };
 use m_engine::generators;
-//use m_front::ParticleSkin;
+
+use bevy::prelude::Color;
 
 use std::sync::mpsc;
 use std::time::Duration;
 use std::collections::HashMap;
+
+static SIMULATION_LEGTH: Duration = Duration::new(5, 0);
+static TIME_STEP: Duration = Duration::from_millis(20);
 
 fn main() {
     let (frames_tx, frames_rx) = mpsc::channel();   
     
     // define classes
     let mut classes = HashMap::new();
+    let mut skins = HashMap::new();
     classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
+    skins.insert(1, ParticleSkin::new(1.0, Color::RED));
 
     // make simulation
     let mut simulation = Simulation::new(classes);
@@ -29,7 +35,6 @@ fn main() {
     
     // Launch the thread that generate frames
     let handle = std::thread::spawn(move || {
-        let time_step = Duration::from_millis(20);
         let mut current_time = Duration::new(0, 0);
         let classes = simulation.particle_classes().clone(); // to please borrow checker
         // Add 0 frame
@@ -39,10 +44,10 @@ fn main() {
         
 
         // Generate frames in a separate thread
-        for _i in 0..=500 {
+        while current_time < SIMULATION_LEGTH{
             // Update simulation
-            integrator.step(simulation.particles_mut(), &classes, time_step);
-            current_time += time_step;
+            integrator.step(simulation.particles_mut(), &classes, TIME_STEP);
+            current_time += TIME_STEP;
             // Send frame
             if let Err(_) = frames_tx.send((current_time.clone(), Frame::new(simulation.particles().to_vec()))) {
                 return;
@@ -53,7 +58,7 @@ fn main() {
         }
     });
     
-    bevy_front::run(frames_rx, Duration::from_secs(5));
+    bevy_front::run(frames_rx, SIMULATION_LEGTH, skins);
 
     handle.join().unwrap();
 }

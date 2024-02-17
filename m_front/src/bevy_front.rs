@@ -1,18 +1,19 @@
 use crate::components::FramesTimeline;
 use crate::components::PlaybackControl;
-use crate::resources::graphic_resources::GlobalMaterials;
-use crate::resources::GlobalMeshes;
-use crate::resources::SimInfo;
+use crate::resources::{GlobalMeshes, GlobalMaterials, SkinGraphics, SimInfo};
 use crate::systems;
-use crate::Frame;
+use crate::{Frame, ParticleSkin};
+use m_engine::prelude::*;
 use bevy::app::App;
 use bevy::prelude::*;
 use bevy::sprite::ColorMaterial;
 use bevy::DefaultPlugins;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
+use std::collections::HashMap;
 
-pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration) {
+pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration,
+    skins : HashMap<ClassId, ParticleSkin>) {
     // Work around the known bevy bug:
     // https://github.com/bevyengine/bevy/issues/8395
     std::env::set_var("WGPU_BACKEND", "dx12");
@@ -20,7 +21,7 @@ pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration) {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
 
-    app.add_systems(Startup, setup);
+    app.add_systems(Startup, (setup, generate_skin_graphics));
     app.add_systems(PostStartup, systems::playback::start_playback);
     app.add_systems(
         PreUpdate,
@@ -32,14 +33,18 @@ pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration) {
     );
     app.add_systems(
         Update,
-        systems::particles_update::particle_move
+        (
+            systems::particles_update::particle_update, 
+            systems::particles_update::update_skins.after(systems::particles_update::particle_update)
+        )
         
     );
 
     // Add resources
-    app.insert_resource(SimInfo::new(total_duration));
+    app.insert_resource(SimInfo::new(total_duration, skins));
     app.insert_resource(GlobalMeshes::new());
     app.insert_resource(GlobalMaterials::new());
+    app.insert_resource(SkinGraphics::new());
 
     // Spawn entity for timeline
     app.world.spawn(FramesTimeline::new(frames_rx));
@@ -48,6 +53,7 @@ pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration) {
     app.run();
 }
 
+/// This system sets up the initial state of the app
 fn setup(
     mut global_mesh_res: ResMut<GlobalMeshes>,
     mut global_materials_res: ResMut<GlobalMaterials>,
@@ -71,4 +77,19 @@ fn setup(
     let white_solid_material = material_assets.add(ColorMaterial::from(Color::WHITE));
     global_materials_res.white_solid = Some(white_solid_material);
 
+}
+
+/// This system generates graphics for all skins
+fn generate_skin_graphics(
+    sim_info : Res<SimInfo>,
+    mut skin_graphics_res: ResMut<SkinGraphics>,
+    mut mesh_assets: ResMut<Assets<Mesh>>,
+    mut material_assets: ResMut<Assets<ColorMaterial>>
+) {
+    for (class_id, skin) in sim_info.skins.iter() {
+        let mesh = mesh_assets.add(Mesh::from(shape::Circle::new(skin.radius)));
+        let material = material_assets.add(ColorMaterial::from(skin.color));
+        skin_graphics_res.meshes.insert(*class_id, mesh);
+        skin_graphics_res.materials.insert(*class_id, material);
+    }
 }

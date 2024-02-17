@@ -36,7 +36,7 @@ impl Simulation {
     pub fn spawn_particles(&mut self, particles: &[Particle]) {
         assert!(particles.iter().all(|p| self.particle_classes.contains_key(&p.class())));
         self.particles.extend_from_slice(particles);
-    }   
+    }
 }
 
 #[cfg(test)]

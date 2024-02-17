@@ -31,7 +31,7 @@ pub fn advance_time(
         // last frame timetamp is soft stop.
         let soft_end = last_frame_timestamp;    
         // Hard stop is total simulation length
-        let hard_end = sim_info.get_total_duration();
+        let hard_end = sim_info.total_duration;
         // Step time is time passed since last frame
         playback_control.step(time_passed, soft_end, hard_end);
 
