@@ -35,6 +35,24 @@ pub fn find_circle_vs_origin_collision(
     }
 }
 
+/// Function calculates collision between 2 moving circles
+/// and returns the time of collision if any.
+pub fn find_circle_vs_circle_collision(
+    center1: Vec2,
+    radius1: f64,
+    velocity1: Vec2,
+    center2: Vec2,
+    radius2: f64,
+    velocity2: Vec2,
+) -> Option<f64> {
+    // This problem can be reduced to collision of circle vs origin
+    let radius = radius1 + radius2;
+    let center = center1 - center2;
+    let velocity = velocity1 - velocity2;
+    
+    return find_circle_vs_origin_collision(center, radius, velocity);
+}
+
 #[cfg(test)]
 mod tests {
     use crate::prelude::DOUBLE_COMPARE_EPS_STRICT;
@@ -75,5 +93,20 @@ mod tests {
             find_circle_vs_origin_collision(Vec2::new(1.0, -5.0), 0.999, Vec2::new(0.0, 2.0))
                 .is_none()
         );
+    }
+
+    #[test]
+    fn test_find_circle_vs_circle_collision() {
+        // circle 2 is catching up circle 1
+        let res = find_circle_vs_circle_collision(
+            Vec2::new(2.0, 1.0),
+            1.0,
+            Vec2::new(-1.0, 0.0),
+            Vec2::new(7.5, 1.0),
+            1.5,
+            Vec2::new(-2.5, 0.0),
+        ).expect("Collision expected");
+        // gap between circles is 3.0. catch up speed is 1.5
+        assert!(math_core::approx_eq(res, 2.0, DOUBLE_COMPARE_EPS_STRICT));
     }
 }
