@@ -1,5 +1,6 @@
 use crate::prelude::*;
 use crate::math_core::*;
+use std::fmt::Display;
 use std::ops::{Add, Sub, Mul, Div, Neg, AddAssign, SubAssign, MulAssign, DivAssign};
 
 #[derive(Clone, Debug, Copy, PartialEq)]
@@ -27,6 +28,15 @@ impl Vec2 {
 
     pub fn length_sq(&self) -> f64 {
         self.x.powi(2) + self.y.powi(2)
+    }
+
+    pub fn normalized(&self) -> Option<Vec2> {
+        let length = self.length();
+        if length > DISTANCE_EPS {
+            Some(*self / length)
+        } else {
+            None
+        }
     }
 
     pub fn approx_eq(&self, other: Self, epsilon: f64) -> bool {
@@ -125,6 +135,12 @@ impl Neg for Vec2 {
     type Output = Self;
     fn neg(self) -> Self::Output {
         Self::new(-self.x, -self.y)
+    }
+}
+
+impl Display for Vec2 {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "[{:.2}, {:.2}]", self.x, self.y)
     }
 }
 
