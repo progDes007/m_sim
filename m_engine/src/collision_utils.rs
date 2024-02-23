@@ -1,5 +1,4 @@
 use crate::math_core;
-use crate::velocity_verlet_integrator;
 use crate::Vec2;
 use std::option::Option;
 
@@ -102,10 +101,19 @@ pub fn collision_separation_velocity(
     velocity2: Vec2,
     mass2: f64,
     coefficient_of_restitution: f64,
-) -> (Vec2, Vec2) {
-    let collision_normal = (center2 - center1).normalized();
-
-    return (Vec2::ZERO, Vec2::ZERO);
+) -> Option<(Vec2, Vec2)> {
+    let collision_normal = collision_normal(center1, velocity1, center2, velocity2)?;
+    let impulse = collision_impulse(
+        mass1,
+        velocity1,
+        mass2,
+        velocity2,
+        collision_normal,
+        coefficient_of_restitution,
+    );
+    let new_velocity1 = apply_impulse(mass1, velocity1, -collision_normal * impulse);
+    let new_velocity2 = apply_impulse(mass2, velocity2, collision_normal * impulse);
+    return Some((new_velocity1, new_velocity2));
 }
 
 #[cfg(test)]
@@ -212,8 +220,7 @@ mod tests {
             println!("res1: {}", res1);
             println!("res2: {}", res2);
             // Weighted summ of velocities is unchanged
-            assert!((v1 * m1 + v2 * m2).approx_eq(
-                res1 * m1 + res2 * m2, DOUBLE_COMPARE_EPS_STRICT));
+            assert!((v1 * m1 + v2 * m2).approx_eq(res1 * m1 + res2 * m2, DOUBLE_COMPARE_EPS_STRICT));
             assert!(res1.approx_eq(expect_v1, DOUBLE_COMPARE_EPS_STRICT));
             assert!(res2.approx_eq(expect_v2, DOUBLE_COMPARE_EPS_STRICT));
         };
@@ -236,8 +243,8 @@ mod tests {
             Vec2::new(-2.0, 0.0),
             Vec2::new(1.0, 0.0),
             0.0,
-            Vec2::new(-2.0/3.0, 0.0),
-            Vec2::new(-2.0/3.0, 0.0),
+            Vec2::new(-2.0 / 3.0, 0.0),
+            Vec2::new(-2.0 / 3.0, 0.0),
         );
 
         // Head on collision case.Elastic. Same masses
@@ -261,7 +268,7 @@ mod tests {
             Vec2::new(1.0, 0.0),
             1.0,
             Vec2::new(-10.0 / 3.0, 0.0), // twice the delta of non-elastic
-            Vec2::new(2.0 / 3.0, 0.0),  // twice the delta of non-elastic
+            Vec2::new(2.0 / 3.0, 0.0),   // twice the delta of non-elastic
         );
 
         // Collision at an angle
