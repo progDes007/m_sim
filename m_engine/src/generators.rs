@@ -40,11 +40,16 @@ pub fn constant_velocity(velocity: Vec2) -> impl Fn(Vec2) -> Vec2 {
     move |_| velocity 
 }
 
-pub fn random_velocity(max_magnitude: f64) -> impl Fn(Vec2) -> Vec2 {
+pub fn random_velocity(mean_magnitude: f64) -> impl Fn(Vec2) -> Vec2 {
     move |_| {
+        // Simulate normal distribution by summing 6 random numbers
+        let mut magnitude = 0.0;
+        let steps = 6;
+        for _ in 0..steps {
+            magnitude += rand::random::<f64>() * mean_magnitude * 2.0 / (steps as f64);
+        }
+
         let angle = rand::random::<f64>() * 2.0 * std::f64::consts::PI;
-        let magnitude = rand::random::<f64>() * max_magnitude;
-        
         Vec2::from_angle_rad(angle) * magnitude
     }
 }

@@ -9,7 +9,7 @@ use std::sync::mpsc;
 use std::time::Duration;
 use std::collections::HashMap;
 
-static SIMULATION_LEGTH: Duration = Duration::new(5, 0);
+static SIMULATION_LEGTH: Duration = Duration::new(10, 0);
 static TIME_STEP: Duration = Duration::from_millis(20);
 
 fn main() {
@@ -27,8 +27,8 @@ fn main() {
     // spawn particles
     simulation.spawn_particles(&generators::generate_grid(
         Vec2::ZERO, Vec2::from_angle_rad(2.22),
-        5.0, 3.0, 5, 3,
-        generators::random_velocity(3.0), 1));
+        30.0, 30.0, 12, 12,
+        generators::random_velocity(60.0), 1));
     
     // make integrator
     let integrator = VelocityVerletIntegrator::new();
@@ -54,7 +54,7 @@ fn main() {
             }
 
             // simulate slow work
-           // std::thread::sleep(std::time::Duration::from_millis(200));
+            //std::thread::sleep(std::time::Duration::from_millis(1000));
         }
     });
     
