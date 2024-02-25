@@ -5,7 +5,7 @@ use std::option::Option;
 /// Function that calculates the collision between circle
 /// and [0,0] point.
 /// Returns the time of collision if any.
-pub fn find_circle_vs_origin_collision(
+pub(crate) fn find_circle_vs_origin_collision(
     center1: Vec2,
     radius1: f64,
     velocity1: Vec2,
@@ -37,7 +37,7 @@ pub fn find_circle_vs_origin_collision(
 
 /// Function calculates collision between 2 moving circles
 /// and returns the time of collision if any.
-pub fn find_circle_vs_circle_collision(
+pub(crate) fn find_circle_vs_circle_collision(
     center1: Vec2,
     radius1: f64,
     velocity1: Vec2,
@@ -55,7 +55,7 @@ pub fn find_circle_vs_circle_collision(
 
 /// Calculates collision normal.
 /// Collision normal can't be calculated if centers are identical and velocities are equal.
-pub fn collision_normal(
+pub(crate) fn collision_normal(
     center1: Vec2,
     velocity1: Vec2,
     center2: Vec2,
@@ -73,7 +73,7 @@ pub fn collision_normal(
 }
 
 /// Calculates collision impulse
-pub fn collision_impulse(
+pub(crate) fn collision_impulse(
     mass1: f64,
     velocity1: Vec2,
     mass2: f64,
@@ -88,12 +88,12 @@ pub fn collision_impulse(
 }
 
 /// Applies impulse to the object with given mass
-pub fn apply_impulse(mass: f64, velocity: Vec2, impulse: Vec2) -> Vec2 {
+pub(crate) fn apply_impulse(mass: f64, velocity: Vec2, impulse: Vec2) -> Vec2 {
     return velocity + impulse / mass;
 }
 
 /// Calculate separation velocity after collision
-pub fn collision_separation_velocity(
+pub(crate) fn collision_separation_velocity(
     center1: Vec2,
     velocity1: Vec2,
     mass1: f64,

@@ -84,7 +84,7 @@ fn find_collisions_multi(
     return collisions;
 }
 
-pub fn resolve(
+pub(crate) fn resolve(
     particles: &mut [Particle],
     class_map: &HashMap<ClassId, ParticleClass>,
     timestep: f64,
