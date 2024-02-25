@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::{Particle, ParticleClass, Polygon, Wall, WallClass};
+use crate::{Particle, ParticleClass, Wall, WallClass};
 use std::collections::HashMap;
 
 #[derive(Clone)]
@@ -70,69 +70,61 @@ impl Simulation {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
-    use crate::Vec2;
+    use crate::{Polygon, Vec2};
 
-    #[cfg(test)]
-    mod tests {
-        use crate::{polygon, wall_class};
+    #[test]
+    fn test_spawn_particles() {
+        let mut classes = HashMap::new();
+        classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
+        classes.insert(20, ParticleClass::new("Class20", 2.0, 1.0));
 
-        use super::*;
+        let mut simulation = Simulation::new(classes, HashMap::new());
 
-        #[test]
-        fn test_spawn_particles() {
-            let mut classes = HashMap::new();
-            classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
-            classes.insert(20, ParticleClass::new("Class20", 2.0, 1.0));
+        // Spawn single
+        simulation.spawn_particle(Particle::new(Vec2::ZERO, Vec2::ZERO, 1));
+        assert_eq!(simulation.particles().len(), 1);
 
-            let mut simulation = Simulation::new(classes, HashMap::new());
+        // Spawn few more. Put them into vector first
+        let particles = vec![
+            Particle::new(Vec2::ZERO, Vec2::ZERO, 20),
+            Particle::new(Vec2::ZERO, Vec2::ZERO, 1),
+        ];
+        simulation.spawn_particles(&particles);
+        assert_eq!(simulation.particles().len(), 3);
+        assert_eq!(simulation.particles()[0].class(), 1);
+        assert_eq!(simulation.particles()[1].class(), 20);
+        assert_eq!(simulation.particles()[2].class(), 1);
+    }
 
-            // Spawn single
-            simulation.spawn_particle(Particle::new(Vec2::ZERO, Vec2::ZERO, 1));
-            assert_eq!(simulation.particles().len(), 1);
+    #[test]
+    fn test_spawn_walls() {
+        let mut classes = HashMap::new();
+        classes.insert(1, WallClass::new("Class1", 0.9));
+        classes.insert(20, WallClass::new("Class20", 1.1));
 
-            // Spawn few more. Put them into vector first
-            let particles = vec![
-                Particle::new(Vec2::ZERO, Vec2::ZERO, 20),
-                Particle::new(Vec2::ZERO, Vec2::ZERO, 1),
-            ];
-            simulation.spawn_particles(&particles);
-            assert_eq!(simulation.particles().len(), 3);
-            assert_eq!(simulation.particles()[0].class(), 1);
-            assert_eq!(simulation.particles()[1].class(), 20);
-            assert_eq!(simulation.particles()[2].class(), 1);
-        }
+        let points = vec![
+            Vec2::new(0.0, 0.0),
+            Vec2::new(1.0, 0.0),
+            Vec2::new(1.0, 1.0),
+        ];
+        let polygon = Polygon::from(points);
 
-        #[test]
-        fn test_spawn_walls() {
-            let mut classes = HashMap::new();
-            classes.insert(1, WallClass::new("Class1", 0.9));
-            classes.insert(20, WallClass::new("Class20", 1.1));
+        let mut simulation = Simulation::new(HashMap::new(), classes);
 
-            let points = vec![
-                Vec2::new(0.0, 0.0),
-                Vec2::new(1.0, 0.0),
-                Vec2::new(1.0, 1.0),
-            ];
-            let polygon = Polygon::from(points);
+        // Spawn single
+        simulation.spawn_wall(Wall::new(polygon.clone(), 1));
+        assert_eq!(simulation.walls().len(), 1);
 
-            let mut simulation = Simulation::new(HashMap::new(), classes);
-
-            // Spawn single
-            simulation.spawn_wall(Wall::new(polygon.clone(), 1));
-            assert_eq!(simulation.walls().len(), 1);
-
-            // Spawn few more. Put them into vector first
-            let walls = vec![
-                Wall::new(polygon.clone(), 20),
-                Wall::new(polygon.clone(), 1),
-            ];
-            simulation.spawn_walls(&walls);
-            assert_eq!(simulation.walls().len(), 3);
-            assert_eq!(simulation.walls()[0].class(), 1);
-            assert_eq!(simulation.walls()[1].class(), 20);
-            assert_eq!(simulation.walls()[2].class(), 1);
-        }
+        // Spawn few more. Put them into vector first
+        let walls = vec![
+            Wall::new(polygon.clone(), 20),
+            Wall::new(polygon.clone(), 1),
+        ];
+        simulation.spawn_walls(&walls);
+        assert_eq!(simulation.walls().len(), 3);
+        assert_eq!(simulation.walls()[0].class(), 1);
+        assert_eq!(simulation.walls()[1].class(), 20);
+        assert_eq!(simulation.walls()[2].class(), 1);
     }
 }
