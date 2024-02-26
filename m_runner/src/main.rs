@@ -1,6 +1,6 @@
-use m_engine::generators;
+use m_engine::{generators, Polygon, Wall, WallClass};
 use m_engine::{Integrator, ParticleClass, Simulation, Vec2, VelocityVerletIntegrator};
-use m_front::bevy_front;
+use m_front::{bevy_front, WallSkin};
 use m_front::{Frame, ParticleSkin};
 
 use bevy::prelude::Color;
@@ -16,13 +16,18 @@ fn main() {
     let (frames_tx, frames_rx) = mpsc::channel();
 
     // define classes
-    let mut classes = HashMap::new();
-    let mut skins = HashMap::new();
-    classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
-    skins.insert(1, ParticleSkin::new(1.0, Color::RED));
+    let mut particle_classes = HashMap::new();
+    let mut particle_skins = HashMap::new();
+    particle_classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
+    particle_skins.insert(1, ParticleSkin::new(1.0, Color::RED));
+
+    let mut wall_classes = HashMap::new();
+    wall_classes.insert(1, WallClass::new("Wall", 1.0));
+    let mut wall_skins = HashMap::new();
+    wall_skins.insert(1, WallSkin::new(Color::WHITE));
 
     // make simulation
-    let mut simulation = Simulation::new(classes, HashMap::new());
+    let mut simulation = Simulation::new(particle_classes, wall_classes);
 
     // spawn particles
     simulation.spawn_particles(&generators::generate_grid(
@@ -36,17 +41,21 @@ fn main() {
         1,
     ));
 
+    // spawn walls
+    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-2.0, -2.0, -1.0, 10.0), 1));
+
     // make integrator
     let integrator = VelocityVerletIntegrator::new();
 
     // Launch the thread that generate frames
     let handle = std::thread::spawn(move || {
         let mut current_time = Duration::new(0, 0);
-        let classes = simulation.particle_classes().clone(); // to please borrow checker
-                                                             // Add 0 frame
+        // clone classes to please borrow checker
+        let classes = simulation.particle_classes().clone();
+        // Add 0 frame
         if let Err(_) = frames_tx.send((
             current_time.clone(),
-            Frame::new(simulation.particles().to_vec()),
+            Frame::new(simulation.particles().to_vec(), simulation.walls().to_vec()),
         )) {
             return;
         }
@@ -59,7 +68,7 @@ fn main() {
             // Send frame
             if let Err(_) = frames_tx.send((
                 current_time.clone(),
-                Frame::new(simulation.particles().to_vec()),
+                Frame::new(simulation.particles().to_vec(), simulation.walls().to_vec()),
             )) {
                 return;
             }
@@ -69,7 +78,7 @@ fn main() {
         }
     });
 
-    bevy_front::run(frames_rx, SIMULATION_LEGTH, skins);
+    bevy_front::run(frames_rx, SIMULATION_LEGTH, particle_skins, wall_skins);
 
     handle.join().unwrap();
 }

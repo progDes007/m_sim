@@ -32,15 +32,17 @@ impl GlobalMaterials{
 
 #[derive(Debug, Clone, Resource)]
 pub(crate) struct SkinGraphics{
-    pub materials : HashMap<ClassId, Handle<ColorMaterial>>,
-    pub meshes : HashMap<ClassId, Handle<Mesh>>,
+    pub particle_materials : HashMap<ClassId, Handle<ColorMaterial>>,
+    pub particle_meshes : HashMap<ClassId, Handle<Mesh>>,
+    pub wall_materials : HashMap<ClassId, Handle<ColorMaterial>>,
 }
 
 impl SkinGraphics{
     pub fn new() -> Self {
         Self {
-            materials : HashMap::new(),
-            meshes : HashMap::new(),
+            particle_materials : HashMap::new(),
+            particle_meshes : HashMap::new(),
+            wall_materials : HashMap::new(),
         }
     }
 }

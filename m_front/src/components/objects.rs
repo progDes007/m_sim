@@ -13,3 +13,15 @@ impl Particle {
         }
     }
 }
+
+
+#[derive(Debug, Clone, Component)]
+pub(crate) struct Wall {
+}
+
+impl Wall {
+    pub fn new() -> Self {
+        Wall {
+        }
+    }
+}

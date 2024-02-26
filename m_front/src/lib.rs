@@ -1,16 +1,17 @@
 pub mod prelude;
 pub mod bevy_front;
-pub mod particle_skin;
+pub mod skins;
 pub mod frame;
 
-pub use particle_skin::ParticleSkin;
+pub use skins::{ParticleSkin, WallSkin};
 pub use frame::Frame;
 
-
+mod utils;
 mod systems
 {
     pub(crate) mod playback;
     pub(crate) mod particles_update;
+    pub(crate) mod walls_update;
 }
 
 mod resources
@@ -28,10 +29,11 @@ mod components
 {
     pub(crate) mod frames_timeline;
     pub(crate) mod playback_control;
-    pub(crate) mod particle;
+    pub(crate) mod objects;
 
     pub(crate) use frames_timeline::FramesTimeline;
     pub(crate) use playback_control::PlaybackControl;
-    pub(crate) use particle::Particle;
+    pub(crate) use objects::Particle;
+    pub(crate) use objects::Wall;
 }
 

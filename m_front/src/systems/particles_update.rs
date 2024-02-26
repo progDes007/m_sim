@@ -75,7 +75,7 @@ pub fn update_skins(
     skins: Res<SkinGraphics>) {
     
     for (mut mesh, mut material, particle) in query.iter_mut() {
-        *mesh = skins.meshes.get(&particle.class).unwrap().clone().into();
-        *material = skins.materials.get(&particle.class).unwrap().clone();
+        *mesh = skins.particle_meshes.get(&particle.class).unwrap().clone().into();
+        *material = skins.particle_materials.get(&particle.class).unwrap().clone();
     }
 }

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 m_engine = { path = "../m_engine" }
 bevy = "0.12"
+earcutr = "0.4.3"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

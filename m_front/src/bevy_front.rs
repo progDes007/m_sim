@@ -1,23 +1,27 @@
 use crate::components::FramesTimeline;
 use crate::components::PlaybackControl;
-use crate::resources::{GlobalMeshes, GlobalMaterials, SkinGraphics, SimInfo};
+use crate::resources::{GlobalMaterials, GlobalMeshes, SimInfo, SkinGraphics};
 use crate::systems;
-use crate::{Frame, ParticleSkin};
-use m_engine::prelude::*;
+use crate::{Frame, ParticleSkin, WallSkin};
 use bevy::app::App;
 use bevy::prelude::*;
 use bevy::sprite::ColorMaterial;
 use bevy::DefaultPlugins;
+use m_engine::prelude::*;
+use std::collections::HashMap;
 use std::sync::mpsc::Receiver;
 use std::time::Duration;
-use std::collections::HashMap;
 
-pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration,
-    skins : HashMap<ClassId, ParticleSkin>) {
+pub fn run(
+    frames_rx: Receiver<(Duration, Frame)>,
+    total_duration: Duration,
+    particle_skins: HashMap<ClassId, ParticleSkin>,
+    wall_skins: HashMap<ClassId, WallSkin>,
+) {
     // Work around the known bevy bug:
     // https://github.com/bevyengine/bevy/issues/8395
     std::env::set_var("WGPU_BACKEND", "dx12");
-    
+
     let mut app = App::new();
     app.add_plugins(DefaultPlugins);
 
@@ -28,20 +32,23 @@ pub fn run(frames_rx: Receiver<(Duration, Frame)>, total_duration: Duration,
         (
             systems::playback::poll_frames,
             systems::playback::advance_time.after(systems::playback::poll_frames),
-            systems::particles_update::particle_spawn_despawn.after(systems::playback::advance_time),
+            systems::particles_update::particle_spawn_despawn
+                .after(systems::playback::advance_time),
+            systems::walls_update::wall_spawn_despawn.after(
+                systems::playback::advance_time)
         ),
     );
     app.add_systems(
         Update,
         (
-            systems::particles_update::particle_update, 
-            systems::particles_update::update_skins.after(systems::particles_update::particle_update)
-        )
-        
+            systems::particles_update::particle_update,
+            systems::particles_update::update_skins
+                .after(systems::particles_update::particle_update),
+        ),
     );
 
     // Add resources
-    app.insert_resource(SimInfo::new(total_duration, skins));
+    app.insert_resource(SimInfo::new(total_duration, particle_skins, wall_skins));
     app.insert_resource(GlobalMeshes::new());
     app.insert_resource(GlobalMaterials::new());
     app.insert_resource(SkinGraphics::new());
@@ -76,20 +83,27 @@ fn setup(
     // Prepare global materials
     let white_solid_material = material_assets.add(ColorMaterial::from(Color::WHITE));
     global_materials_res.white_solid = Some(white_solid_material);
-
 }
 
 /// This system generates graphics for all skins
 fn generate_skin_graphics(
-    sim_info : Res<SimInfo>,
+    sim_info: Res<SimInfo>,
     mut skin_graphics_res: ResMut<SkinGraphics>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
-    mut material_assets: ResMut<Assets<ColorMaterial>>
+    mut material_assets: ResMut<Assets<ColorMaterial>>,
 ) {
-    for (class_id, skin) in sim_info.skins.iter() {
-        let mesh = mesh_assets.add(Mesh::from(shape::Circle::new(skin.radius)));
-        let material = material_assets.add(ColorMaterial::from(skin.color));
-        skin_graphics_res.meshes.insert(*class_id, mesh);
-        skin_graphics_res.materials.insert(*class_id, material);
+    // Generate graphics for particles
+    for (class_id, skin) in sim_info.particle_skins.iter() {
+        let mesh = mesh_assets.add(Mesh::from(shape::Circle::new(skin.radius())));
+        let material = material_assets.add(ColorMaterial::from(skin.color()));
+        skin_graphics_res.particle_meshes.insert(*class_id, mesh);
+        skin_graphics_res
+            .particle_materials
+            .insert(*class_id, material);
+    }
+    // Generate graphics for walls
+    for (class_id, skin) in sim_info.wall_skins.iter() {
+        let material = material_assets.add(ColorMaterial::from(skin.color()));
+        skin_graphics_res.wall_materials.insert(*class_id, material);
     }
 }

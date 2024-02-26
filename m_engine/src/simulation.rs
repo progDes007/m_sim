@@ -103,12 +103,7 @@ mod tests {
         classes.insert(1, WallClass::new("Class1", 0.9));
         classes.insert(20, WallClass::new("Class20", 1.1));
 
-        let points = vec![
-            Vec2::new(0.0, 0.0),
-            Vec2::new(1.0, 0.0),
-            Vec2::new(1.0, 1.0),
-        ];
-        let polygon = Polygon::from(points);
+        let polygon = Polygon::new_rectangle(0.0, 0.0, 1.0, 1.0);
 
         let mut simulation = Simulation::new(HashMap::new(), classes);
 

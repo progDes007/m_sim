@@ -75,7 +75,7 @@ mod test {
                 Vec2::new(i as f64, i as f64), 
                 i as ClassId));
         }
-        Frame::new(particles)
+        Frame::new(particles, vec![])
     }
 
     // Helper function that creates frame timeline and generate some frames.

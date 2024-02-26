@@ -3,8 +3,8 @@ use m_engine::ParticleClass;
 
 #[derive(Clone, Debug)] // no Copy, since I expect this class to grow into something more complex
 pub struct ParticleSkin {
-    pub radius: f32,
-    pub color: Color,
+    radius: f32,
+    color: Color,
 }
 
 impl ParticleSkin {
@@ -24,6 +24,23 @@ impl ParticleSkin {
 
     pub fn radius(&self) -> f32 {
         self.radius
+    }
+
+    pub fn color(&self) -> Color {
+        self.color
+    }
+}
+
+#[derive(Clone, Debug)] // no Copy, since I expect this class to grow into something more complex
+pub struct WallSkin {
+    color: Color,
+}
+
+impl WallSkin {
+    pub fn new(color: Color) -> Self {
+        WallSkin {
+            color,
+        }
     }
 
     pub fn color(&self) -> Color {
