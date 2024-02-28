@@ -1,5 +1,5 @@
 use crate::math_core;
-use crate::Vec2;
+use crate::{Vec2, Plane};
 use std::option::Option;
 
 /// Function that calculates the collision between circle
@@ -51,6 +51,22 @@ pub(crate) fn find_circle_vs_circle_collision(
     let velocity = velocity1 - velocity2;
 
     return find_circle_vs_origin_collision(center, radius, velocity);
+}
+
+/// Function calculates the collision between moving point and a plane
+pub(crate) fn find_point_vs_plane_collision(
+    point: Vec2,
+    velocity: Vec2,
+    plane: Plane,
+) -> Option<f64> {
+    let normal = plane.normal;
+    let distance = plane.distance;
+    let approach_speed = -velocity.dot(normal);
+    if approach_speed <= 0.0 {
+        return None;
+    }
+    let t = (point.dot(normal) - distance) / approach_speed;
+    return Some(t);
 }
 
 /// Calculates collision normal.
@@ -172,6 +188,47 @@ mod tests {
         .expect("Collision expected");
         // gap between circles is 3.0. catch up speed is 1.5
         assert!(math_core::approx_eq(res, 2.0, DOUBLE_COMPARE_EPS_STRICT));
+    }
+
+    #[test]
+    fn test_find_point_vs_plane_collision() {
+        // Point in front but moves away
+        assert!(
+            find_point_vs_plane_collision(
+                Vec2::new(0.0, 0.0), Vec2::new(0.0, 1.0), 
+                Plane::new(Vec2::new(0.0, 1.0), -1.0)).is_none()
+        );
+        // Point in behind and moves away
+        assert!(
+            find_point_vs_plane_collision(
+                Vec2::new(0.0, 0.0), Vec2::new(0.0, 1.0), 
+                Plane::new(Vec2::new(0.0, 1.0), 1.0)).is_none()
+        );
+        // Point is in behind and moves towards. The collision shall
+        // be in the past
+        let t = find_point_vs_plane_collision(
+            Vec2::new(0.0, 0.0), Vec2::new(0.0, -1.0), 
+            Plane::new(Vec2::new(0.0, 1.0), 1.0)).expect("Collision expected");
+        assert!( math_core::approx_eq(t, -1.0, DOUBLE_COMPARE_EPS_STRICT));
+
+        // Point is in in front and moves towards. The collision shall
+        // be in the future
+        let t = find_point_vs_plane_collision(
+            Vec2::new(0.0, 2.0), Vec2::new(0.0, -1.0), 
+            Plane::new(Vec2::new(0.0, 1.0), 0.0)).expect("Collision expected");
+        assert!( math_core::approx_eq(t, 2.0, DOUBLE_COMPARE_EPS_STRICT));
+
+        // Check velocity affects time
+        let t = find_point_vs_plane_collision(
+            Vec2::new(0.0, 2.0), Vec2::new(0.0, -2.0), 
+            Plane::new(Vec2::new(0.0, 1.0), 0.0)).expect("Collision expected");
+        assert!( math_core::approx_eq(t, 1.0, DOUBLE_COMPARE_EPS_STRICT));
+
+        // Check angle of approach affects time. 30 deg is convinient, since it's sin is 1/2
+        let t = find_point_vs_plane_collision(
+            Vec2::new(0.0, 2.0), Vec2::from_angle_rad(-std::f64::consts::PI / 6.0), 
+            Plane::new(Vec2::new(0.0, 1.0).normalized().unwrap(), 0.0)).expect("Collision expected");
+        assert!( math_core::approx_eq(t, 4.0, DOUBLE_COMPARE_EPS_STRICT));
     }
 
     #[test]

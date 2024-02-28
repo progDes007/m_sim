@@ -29,7 +29,7 @@ impl FramesTimeline {
         }
     }
 
-    pub fn num_frames(&self) -> usize {
+    pub fn _num_frames(&self) -> usize {
         self.frames.len()
     }
 
@@ -45,7 +45,7 @@ impl FramesTimeline {
 
     /// Time span [from, to] of all frames in the timeline. Returns None if there are
     /// no frames
-    pub fn time_span(&self) -> Option<(Duration, Duration)> {
+    pub fn _time_span(&self) -> Option<(Duration, Duration)> {
         if self.frames.is_empty() {
             return None;
         }
