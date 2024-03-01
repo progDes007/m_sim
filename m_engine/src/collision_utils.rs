@@ -1,5 +1,5 @@
-use crate::math_core;
-use crate::{Vec2, Plane};
+use crate::{math_core, LineSegment};
+use crate::{Plane, Polygon, Vec2};
 use std::option::Option;
 
 /// Function that calculates the collision between circle
@@ -67,6 +67,91 @@ pub(crate) fn find_point_vs_plane_collision(
     }
     let t = (point.dot(normal) - distance) / approach_speed;
     return Some(t);
+}
+
+/// Function calculates collision between moving point and stationary line segment
+pub(crate) fn find_point_vs_segment_collision(
+    point: Vec2,
+    velocity: Vec2,
+    segment: LineSegment,
+) -> Option<f64> {
+    let plane = segment.plane()?;
+    let t = find_point_vs_plane_collision(point, velocity, plane)?;
+    // Find collision point and see if it fell into segment
+    let collision_point = point + velocity * t;
+    let on = (collision_point - segment.begin).dot(collision_point - segment.end) <= 0.0;
+    return if on { Some(t) } else { None };
+}
+
+/// Function calculate the collision between moving circle and polygon
+/// Returns time and collision normal, if any
+pub(crate) fn find_circle_vs_polygon_collision(
+    center: Vec2,
+    radius: f64,
+    velocity: Vec2,
+    polygon: &Polygon,
+) -> Option<(f64, Vec2)> {
+    let mut result = None;
+    // helper lamda that replaces collision with new one
+    // if new one is earlier
+    let mut take = |collision: (f64, Vec2)| {
+        if let Some((t, _)) = result {
+            if collision.0 < t {
+                result = Some(collision);
+            }
+        } else {
+            result = Some(collision);
+        }
+    };
+
+    // Intersect with vertices
+    for (vertex_index, vertex) in polygon.points.iter().enumerate() {
+        // Don't collide with vertex if center is already on the internal side of the corner.
+        // This can only happen if:
+        // - point is outside polygon, but behind other edges. so collision is useless
+        // - point is inside polygon. in which case we don't want collision
+        if !polygon.is_point_outside_corner(vertex_index, center) {
+            continue;
+        }
+
+        let local_center = center - *vertex;
+        let t = find_circle_vs_origin_collision(local_center, radius, velocity);
+        if let Some(t) = t {
+            let expected_collision = local_center + velocity * t;
+            let normal = collision_normal(Vec2::ZERO, Vec2::ZERO, expected_collision, velocity);
+            if let Some(normal) = normal {
+                take((t, normal));
+            }
+        }
+    }
+
+    // Intersect with edges
+    for edge in polygon.edges_iter() {
+        let plane = edge.plane().expect("Non 0 edge is expected");
+        // If circle already penetrated the edge by > radius - skip it
+        // This is needed for collision stability. If we ignore all collisions in the past
+        // this will cause ghosting even after tiny penetration (think numerical accuracy).
+        // At the same time we don't want to accept collisions far in the past (large penetration).
+        // In combination with OTHER mistakes in simulation it can lead for particle that is completely ourside of
+        // polygon to teleport back through the polygon.
+        // This may be overcautious, but it is most robust.
+        let center_depth = -plane.distance(center);
+        if center_depth >= 0.0 {
+            continue;
+        }
+
+        // Reduce problem to point vs line segment.
+        // Note: because we reduce it to point vs line segment there is subtle side effect
+        // There won't be a collision if circle center is outside of edge, but circle perimeter is hitting.
+        // However, this case will be corvered in the vertex collision check above
+        let off_edge = edge.offseted(radius).expect("Failed to offset edge");
+        let t_opt = find_point_vs_segment_collision(center, velocity, off_edge);
+        if let Some(t) = t_opt {
+            take((t, plane.normal));
+        }
+    }
+
+    return result;
 }
 
 /// Calculates collision normal.
@@ -193,42 +278,225 @@ mod tests {
     #[test]
     fn test_find_point_vs_plane_collision() {
         // Point in front but moves away
-        assert!(
-            find_point_vs_plane_collision(
-                Vec2::new(0.0, 0.0), Vec2::new(0.0, 1.0), 
-                Plane::new(Vec2::new(0.0, 1.0), -1.0)).is_none()
-        );
+        assert!(find_point_vs_plane_collision(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(0.0, 1.0),
+            Plane::new(Vec2::new(0.0, 1.0), -1.0)
+        )
+        .is_none());
         // Point in behind and moves away
-        assert!(
-            find_point_vs_plane_collision(
-                Vec2::new(0.0, 0.0), Vec2::new(0.0, 1.0), 
-                Plane::new(Vec2::new(0.0, 1.0), 1.0)).is_none()
-        );
+        assert!(find_point_vs_plane_collision(
+            Vec2::new(0.0, 0.0),
+            Vec2::new(0.0, 1.0),
+            Plane::new(Vec2::new(0.0, 1.0), 1.0)
+        )
+        .is_none());
         // Point is in behind and moves towards. The collision shall
         // be in the past
         let t = find_point_vs_plane_collision(
-            Vec2::new(0.0, 0.0), Vec2::new(0.0, -1.0), 
-            Plane::new(Vec2::new(0.0, 1.0), 1.0)).expect("Collision expected");
-        assert!( math_core::approx_eq(t, -1.0, DOUBLE_COMPARE_EPS_STRICT));
+            Vec2::new(0.0, 0.0),
+            Vec2::new(0.0, -1.0),
+            Plane::new(Vec2::new(0.0, 1.0), 1.0),
+        )
+        .expect("Collision expected");
+        assert!(math_core::approx_eq(t, -1.0, DOUBLE_COMPARE_EPS_STRICT));
 
         // Point is in in front and moves towards. The collision shall
         // be in the future
         let t = find_point_vs_plane_collision(
-            Vec2::new(0.0, 2.0), Vec2::new(0.0, -1.0), 
-            Plane::new(Vec2::new(0.0, 1.0), 0.0)).expect("Collision expected");
-        assert!( math_core::approx_eq(t, 2.0, DOUBLE_COMPARE_EPS_STRICT));
+            Vec2::new(0.0, 2.0),
+            Vec2::new(0.0, -1.0),
+            Plane::new(Vec2::new(0.0, 1.0), 0.0),
+        )
+        .expect("Collision expected");
+        assert!(math_core::approx_eq(t, 2.0, DOUBLE_COMPARE_EPS_STRICT));
 
         // Check velocity affects time
         let t = find_point_vs_plane_collision(
-            Vec2::new(0.0, 2.0), Vec2::new(0.0, -2.0), 
-            Plane::new(Vec2::new(0.0, 1.0), 0.0)).expect("Collision expected");
-        assert!( math_core::approx_eq(t, 1.0, DOUBLE_COMPARE_EPS_STRICT));
+            Vec2::new(0.0, 2.0),
+            Vec2::new(0.0, -2.0),
+            Plane::new(Vec2::new(0.0, 1.0), 0.0),
+        )
+        .expect("Collision expected");
+        assert!(math_core::approx_eq(t, 1.0, DOUBLE_COMPARE_EPS_STRICT));
 
         // Check angle of approach affects time. 30 deg is convinient, since it's sin is 1/2
         let t = find_point_vs_plane_collision(
-            Vec2::new(0.0, 2.0), Vec2::from_angle_rad(-std::f64::consts::PI / 6.0), 
-            Plane::new(Vec2::new(0.0, 1.0).normalized().unwrap(), 0.0)).expect("Collision expected");
-        assert!( math_core::approx_eq(t, 4.0, DOUBLE_COMPARE_EPS_STRICT));
+            Vec2::new(0.0, 2.0),
+            Vec2::from_angle_rad(-std::f64::consts::PI / 6.0),
+            Plane::new(Vec2::new(0.0, 1.0).normalized().unwrap(), 0.0),
+        )
+        .expect("Collision expected");
+        assert!(math_core::approx_eq(t, 4.0, DOUBLE_COMPARE_EPS_STRICT));
+    }
+
+    #[test]
+    fn test_find_point_vs_segment_collision() {
+        let segment = LineSegment::new(Vec2::new(1.0, 1.0), Vec2::new(1.0, 3.0));
+        // Miss from begin side
+        assert!(find_point_vs_segment_collision(
+            Vec2::new(3.0, 0.0),
+            Vec2::new(-1.0, 0.0),
+            segment
+        )
+        .is_none());
+        // RIght onto begin
+        assert!(find_point_vs_segment_collision(
+            Vec2::new(3.0, 1.0),
+            Vec2::new(-1.0, 0.0),
+            segment
+        )
+        .is_some());
+
+        // Hit mid-edge
+        assert!(find_point_vs_segment_collision(
+            Vec2::new(3.0, 2.0),
+            Vec2::new(-1.0, 0.0),
+            segment
+        )
+        .is_some());
+        // Right onto end
+        assert!(find_point_vs_segment_collision(
+            Vec2::new(3.0, 3.0),
+            Vec2::new(-1.0, 0.0),
+            segment
+        )
+        .is_some());
+        // Miss from end side
+        assert!(find_point_vs_segment_collision(
+            Vec2::new(3.0, 4.0),
+            Vec2::new(-1.0, 0.0),
+            segment
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn test_find_point_vs_polygon_edge_collision() {
+        // Make a square
+        let polygon = Polygon::new_rectangle(1.0, 1.0, 4.0, 3.0);
+
+        // Collision from outside (moving from top down)
+        let res = find_circle_vs_polygon_collision(
+            Vec2::new(3.0, 6.0),
+            1.0,
+            Vec2::new(0.0, -2.0),
+            &polygon,
+        )
+        .expect("Collision expected");
+        assert!(math_core::approx_eq(res.0, 1.0, DOUBLE_COMPARE_EPS_STRICT));
+        assert!(res
+            .1
+            .approx_eq(Vec2::new(0.0, 1.0), DOUBLE_COMPARE_EPS_STRICT));
+
+        // When there is small penetration (< radius) - collision is in the past
+        let res = find_circle_vs_polygon_collision(
+            Vec2::new(3.0, 3.1),
+            0.5,
+            Vec2::new(0.0, -2.0),
+            &polygon,
+        )
+        .expect("Collision expected");
+        assert!(math_core::approx_eq(res.0, -0.2, DOUBLE_COMPARE_EPS_STRICT));
+        assert!(res
+            .1
+            .approx_eq(Vec2::new(0.0, 1.0), DOUBLE_COMPARE_EPS_STRICT));
+
+        // When penetration is larger than radius - no collision
+        assert!(find_circle_vs_polygon_collision(
+            Vec2::new(3.0, 2.99),
+            0.5,
+            Vec2::new(0.0, -2.0),
+            &polygon
+        )
+        .is_none());
+
+        // When fully inside - no collision
+        assert!(find_circle_vs_polygon_collision(
+            Vec2::new(3.0, 2.0),
+            0.5,
+            Vec2::new(0.0, -2.0),
+            &polygon
+        )
+        .is_none());
+
+        // When starting to exit, but center is still inside - no collision
+        assert!(find_circle_vs_polygon_collision(
+            Vec2::new(3.0, 0.1),
+            0.5,
+            Vec2::new(0.0, -2.0),
+            &polygon
+        )
+        .is_none());
+
+        // When exiting. Center outside, but there is overlap - no collision
+        assert!(find_circle_vs_polygon_collision(
+            Vec2::new(3.0, -0.2),
+            0.5,
+            Vec2::new(0.0, -2.0),
+            &polygon
+        )
+        .is_none());
+
+        // When exited completely - no collision
+        assert!(find_circle_vs_polygon_collision(
+            Vec2::new(3.0, -2.2),
+            0.5,
+            Vec2::new(0.0, -2.0),
+            &polygon
+        )
+        .is_none());
+    }
+
+    #[test]
+    fn test_find_point_vs_polygon_vertex_collision() {
+        // Make CCW rombus for convinient math
+        let polygon = Polygon::from(vec![
+            Vec2::new(1.0, 0.0),
+            Vec2::new(2.0, 1.0),
+            Vec2::new(1.0, 2.0),
+            Vec2::new(2.0, 1.0),
+        ]);
+        
+        // Hitting from outside int the right vertex
+        let res = find_circle_vs_polygon_collision(
+            Vec2::new(4.0, 1.0),
+            1.0,
+            Vec2::new(-2.0, 0.0),
+            &polygon,
+        ).expect("Collision expected");
+        assert!(math_core::approx_eq(res.0, 0.5, DOUBLE_COMPARE_EPS_STRICT));
+        assert!(res.1.approx_eq(Vec2::new(1.0, 0.0), DOUBLE_COMPARE_EPS_STRICT));
+
+        // When there is a bit of penetration - collision in the past
+        let res = find_circle_vs_polygon_collision(
+            Vec2::new(2.2, 1.0),
+            1.0,
+            Vec2::new(-2.0, 0.0),
+            &polygon,
+        ).expect("Collision expected");
+        assert!(math_core::approx_eq(res.0, -0.4, DOUBLE_COMPARE_EPS_STRICT));
+        assert!(res.1.approx_eq(Vec2::new(1.0, 0.0), DOUBLE_COMPARE_EPS_STRICT));
+
+        // When penetration is deeper (center inside) - no collision
+        assert!(find_circle_vs_polygon_collision(
+            Vec2::new(1.9, 1.0),
+            1.0,
+            Vec2::new(-2.0, 0.0),
+            &polygon
+        ).is_none());
+
+        // Now test the collision with vertex at an angle.
+        let res = find_circle_vs_polygon_collision(
+            Vec2::new(2.99, -1.0),
+            1.0,
+            Vec2::new(0.0, 1.0),
+            &polygon,
+        ).expect("Collision expected");
+        // Barely scraping the vertex. The exact result is hard to calculate
+        // But roughly:
+        assert!(math_core::approx_eq(res.0, 1.8, 0.1));
+        assert!(res.1.approx_eq(Vec2::new(1.0, 0.0), 0.2));
     }
 
     #[test]

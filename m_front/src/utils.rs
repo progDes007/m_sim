@@ -6,7 +6,7 @@ use earcutr::earcut;
 /// Triangulates the polygon. Returns vertices and indices
 pub(crate) fn triangulate_polygon(polygon: &Polygon) -> Vec<usize> {
     // Map polygon points to different format
-    let vertices: Vec<f32> = polygon.points2d_flat();
+    let vertices: Vec<f32> = polygon.points2d_flat_iter().collect();
     let res = earcut(&vertices, &[], 2);
     return match res {
         Ok(indices) => indices,
@@ -22,7 +22,8 @@ pub(crate) fn triangulate_polygon(polygon: &Polygon) -> Vec<usize> {
 pub(crate) fn create_mesh(polygon: &Polygon) -> Mesh {
     let indices = triangulate_polygon(polygon);
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, polygon.points3d_arrays());
+    let points3d: Vec<[f32; 3]> = polygon.points3d_arrays_iter().collect();
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, points3d);
     mesh.set_indices(Some(bevy::render::mesh::Indices::U32(
         indices.into_iter().map(|i| i as u32).collect())));
     return mesh;

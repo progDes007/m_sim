@@ -124,7 +124,7 @@ mod test {
         timeline.poll_frames();
 
         // Assert that the timeline has received all frames
-        assert_eq!(timeline.num_frames(), 5);
+        assert_eq!(timeline._num_frames(), 5);
     }
     
 
@@ -152,13 +152,13 @@ mod test {
     #[test]
     fn test_time_span() {
         let timeline = make_test_timeline(5, Duration::from_secs(1));
-        let time_span = timeline.time_span().unwrap();
+        let time_span = timeline._time_span().unwrap();
         assert_eq!(time_span.0, Duration::from_secs(1));
         assert_eq!(time_span.1, Duration::from_secs(5));
 
         // Also test empty timeline
         let (_, receiver) = mpsc::channel();
         let timeline = FramesTimeline::new(receiver);
-        assert!(timeline.time_span().is_none());
+        assert!(timeline._time_span().is_none());
     }
 }
