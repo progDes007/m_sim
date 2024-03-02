@@ -24,7 +24,7 @@ impl Integrator for VelocityVerletIntegrator {
 
         // Lamda that resolve velocity
         let resolve_velocity = |p1: &Particle, p2: &Particle| {
-            let velocities = collision_utils::collision_separation_velocity(
+            let velocities = collision_utils::particles_collision_separation_velocity(
                 p1.position,
                 p1.velocity,
                 particle_classes.get(&p1.class()).unwrap().mass(),

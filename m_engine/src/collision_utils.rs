@@ -35,9 +35,9 @@ pub(crate) fn find_circle_vs_origin_collision(
     }
 }
 
-/// Function calculates collision between 2 moving circles
+/// Function calculates collision between 2 moving particles
 /// and returns the time of collision if any.
-pub(crate) fn find_circle_vs_circle_collision(
+pub(crate) fn find_particle_vs_particle_collision(
     center1: Vec2,
     radius1: f64,
     velocity1: Vec2,
@@ -83,9 +83,9 @@ pub(crate) fn find_point_vs_segment_collision(
     return if on { Some(t) } else { None };
 }
 
-/// Function calculate the collision between moving circle and polygon
+/// Function calculate the collision between moving particle and polygon
 /// Returns time and collision normal, if any
-pub(crate) fn find_circle_vs_polygon_collision(
+pub(crate) fn find_particle_vs_polygon_collision(
     center: Vec2,
     radius: f64,
     velocity: Vec2,
@@ -118,7 +118,7 @@ pub(crate) fn find_circle_vs_polygon_collision(
         let t = find_circle_vs_origin_collision(local_center, radius, velocity);
         if let Some(t) = t {
             let expected_collision = local_center + velocity * t;
-            let normal = collision_normal(Vec2::ZERO, Vec2::ZERO, expected_collision, velocity);
+            let normal = particles_collision_normal(Vec2::ZERO, Vec2::ZERO, expected_collision, velocity);
             if let Some(normal) = normal {
                 take((t, normal));
             }
@@ -128,7 +128,7 @@ pub(crate) fn find_circle_vs_polygon_collision(
     // Intersect with edges
     for edge in polygon.edges_iter() {
         let plane = edge.plane().expect("Non 0 edge is expected");
-        // If circle already penetrated the edge by > radius - skip it
+        // If particle already penetrated the edge by > radius - skip it
         // This is needed for collision stability. If we ignore all collisions in the past
         // this will cause ghosting even after tiny penetration (think numerical accuracy).
         // At the same time we don't want to accept collisions far in the past (large penetration).
@@ -142,7 +142,7 @@ pub(crate) fn find_circle_vs_polygon_collision(
 
         // Reduce problem to point vs line segment.
         // Note: because we reduce it to point vs line segment there is subtle side effect
-        // There won't be a collision if circle center is outside of edge, but circle perimeter is hitting.
+        // There won't be a collision if particle center is outside of edge, but particle perimeter is hitting.
         // However, this case will be corvered in the vertex collision check above
         let off_edge = edge.offseted(radius).expect("Failed to offset edge");
         let t_opt = find_point_vs_segment_collision(center, velocity, off_edge);
@@ -154,9 +154,9 @@ pub(crate) fn find_circle_vs_polygon_collision(
     return result;
 }
 
-/// Calculates collision normal.
+/// Calculates collision normal of 2 colliding particles.
 /// Collision normal can't be calculated if centers are identical and velocities are equal.
-pub(crate) fn collision_normal(
+pub(crate) fn particles_collision_normal(
     center1: Vec2,
     velocity1: Vec2,
     center2: Vec2,
@@ -183,9 +183,21 @@ pub(crate) fn collision_impulse(
     coefficient_of_restitution: f64,
 ) -> f64 {
     let relative_velocity = velocity1 - velocity2;
-    let approach_velocity = relative_velocity.dot(collision_normal);
+    let approach_velocity = -relative_velocity.dot(collision_normal);
     let impulse = approach_velocity * (1.0 + coefficient_of_restitution);
     return impulse / (1.0 / mass1 + 1.0 / mass2);
+}
+
+/// Calculate collision impulse when one of the objects is fixed (immoveable)
+fn collision_impulse_stationary(
+    mass1: f64,
+    velocity1: Vec2,
+    collision_normal: Vec2,
+    coefficient_of_restitution: f64,
+) -> f64 {
+    let approach_velocity = -velocity1.dot(collision_normal);
+    let impulse = approach_velocity * (1.0 + coefficient_of_restitution);
+    return impulse * mass1;
 }
 
 /// Applies impulse to the object with given mass
@@ -194,7 +206,7 @@ pub(crate) fn apply_impulse(mass: f64, velocity: Vec2, impulse: Vec2) -> Vec2 {
 }
 
 /// Calculate separation velocity after collision
-pub(crate) fn collision_separation_velocity(
+pub(crate) fn particles_collision_separation_velocity(
     center1: Vec2,
     velocity1: Vec2,
     mass1: f64,
@@ -203,7 +215,7 @@ pub(crate) fn collision_separation_velocity(
     mass2: f64,
     coefficient_of_restitution: f64,
 ) -> Option<(Vec2, Vec2)> {
-    let collision_normal = collision_normal(center1, velocity1, center2, velocity2)?;
+    let collision_normal = particles_collision_normal(center1, velocity1, center2, velocity2)?;
     let impulse = collision_impulse(
         mass1,
         velocity1,
@@ -212,8 +224,8 @@ pub(crate) fn collision_separation_velocity(
         collision_normal,
         coefficient_of_restitution,
     );
-    let new_velocity1 = apply_impulse(mass1, velocity1, -collision_normal * impulse);
-    let new_velocity2 = apply_impulse(mass2, velocity2, collision_normal * impulse);
+    let new_velocity1 = apply_impulse(mass1, velocity1, collision_normal * impulse);
+    let new_velocity2 = apply_impulse(mass2, velocity2, -collision_normal * impulse);
     return Some((new_velocity1, new_velocity2));
 }
 
@@ -260,9 +272,9 @@ mod tests {
     }
 
     #[test]
-    fn test_find_circle_vs_circle_collision() {
-        // circle 2 is catching up circle 1
-        let res = find_circle_vs_circle_collision(
+    fn test_find_particle_vs_particle_collision() {
+        // particle 2 is catching up particle 1
+        let res = find_particle_vs_particle_collision(
             Vec2::new(2.0, 1.0),
             1.0,
             Vec2::new(-1.0, 0.0),
@@ -271,7 +283,7 @@ mod tests {
             Vec2::new(-2.5, 0.0),
         )
         .expect("Collision expected");
-        // gap between circles is 3.0. catch up speed is 1.5
+        // gap between particles is 3.0. catch up speed is 1.5
         assert!(math_core::approx_eq(res, 2.0, DOUBLE_COMPARE_EPS_STRICT));
     }
 
@@ -372,12 +384,12 @@ mod tests {
     }
 
     #[test]
-    fn test_find_point_vs_polygon_edge_collision() {
+    fn test_find_particle_vs_polygon_edge_collision() {
         // Make a square
         let polygon = Polygon::new_rectangle(1.0, 1.0, 4.0, 3.0);
 
         // Collision from outside (moving from top down)
-        let res = find_circle_vs_polygon_collision(
+        let res = find_particle_vs_polygon_collision(
             Vec2::new(3.0, 6.0),
             1.0,
             Vec2::new(0.0, -2.0),
@@ -390,7 +402,7 @@ mod tests {
             .approx_eq(Vec2::new(0.0, 1.0), DOUBLE_COMPARE_EPS_STRICT));
 
         // When there is small penetration (< radius) - collision is in the past
-        let res = find_circle_vs_polygon_collision(
+        let res = find_particle_vs_polygon_collision(
             Vec2::new(3.0, 3.1),
             0.5,
             Vec2::new(0.0, -2.0),
@@ -403,7 +415,7 @@ mod tests {
             .approx_eq(Vec2::new(0.0, 1.0), DOUBLE_COMPARE_EPS_STRICT));
 
         // When penetration is larger than radius - no collision
-        assert!(find_circle_vs_polygon_collision(
+        assert!(find_particle_vs_polygon_collision(
             Vec2::new(3.0, 2.99),
             0.5,
             Vec2::new(0.0, -2.0),
@@ -412,7 +424,7 @@ mod tests {
         .is_none());
 
         // When fully inside - no collision
-        assert!(find_circle_vs_polygon_collision(
+        assert!(find_particle_vs_polygon_collision(
             Vec2::new(3.0, 2.0),
             0.5,
             Vec2::new(0.0, -2.0),
@@ -421,7 +433,7 @@ mod tests {
         .is_none());
 
         // When starting to exit, but center is still inside - no collision
-        assert!(find_circle_vs_polygon_collision(
+        assert!(find_particle_vs_polygon_collision(
             Vec2::new(3.0, 0.1),
             0.5,
             Vec2::new(0.0, -2.0),
@@ -430,7 +442,7 @@ mod tests {
         .is_none());
 
         // When exiting. Center outside, but there is overlap - no collision
-        assert!(find_circle_vs_polygon_collision(
+        assert!(find_particle_vs_polygon_collision(
             Vec2::new(3.0, -0.2),
             0.5,
             Vec2::new(0.0, -2.0),
@@ -439,7 +451,7 @@ mod tests {
         .is_none());
 
         // When exited completely - no collision
-        assert!(find_circle_vs_polygon_collision(
+        assert!(find_particle_vs_polygon_collision(
             Vec2::new(3.0, -2.2),
             0.5,
             Vec2::new(0.0, -2.0),
@@ -449,7 +461,7 @@ mod tests {
     }
 
     #[test]
-    fn test_find_point_vs_polygon_vertex_collision() {
+    fn test_find_particle_vs_polygon_vertex_collision() {
         // Make CCW rombus for convinient math
         let polygon = Polygon::from(vec![
             Vec2::new(1.0, 0.0),
@@ -457,42 +469,50 @@ mod tests {
             Vec2::new(1.0, 2.0),
             Vec2::new(2.0, 1.0),
         ]);
-        
+
         // Hitting from outside int the right vertex
-        let res = find_circle_vs_polygon_collision(
+        let res = find_particle_vs_polygon_collision(
             Vec2::new(4.0, 1.0),
             1.0,
             Vec2::new(-2.0, 0.0),
             &polygon,
-        ).expect("Collision expected");
+        )
+        .expect("Collision expected");
         assert!(math_core::approx_eq(res.0, 0.5, DOUBLE_COMPARE_EPS_STRICT));
-        assert!(res.1.approx_eq(Vec2::new(1.0, 0.0), DOUBLE_COMPARE_EPS_STRICT));
+        assert!(res
+            .1
+            .approx_eq(Vec2::new(1.0, 0.0), DOUBLE_COMPARE_EPS_STRICT));
 
         // When there is a bit of penetration - collision in the past
-        let res = find_circle_vs_polygon_collision(
+        let res = find_particle_vs_polygon_collision(
             Vec2::new(2.2, 1.0),
             1.0,
             Vec2::new(-2.0, 0.0),
             &polygon,
-        ).expect("Collision expected");
+        )
+        .expect("Collision expected");
         assert!(math_core::approx_eq(res.0, -0.4, DOUBLE_COMPARE_EPS_STRICT));
-        assert!(res.1.approx_eq(Vec2::new(1.0, 0.0), DOUBLE_COMPARE_EPS_STRICT));
+        assert!(res
+            .1
+            .approx_eq(Vec2::new(1.0, 0.0), DOUBLE_COMPARE_EPS_STRICT));
 
         // When penetration is deeper (center inside) - no collision
-        assert!(find_circle_vs_polygon_collision(
+        assert!(find_particle_vs_polygon_collision(
             Vec2::new(1.9, 1.0),
             1.0,
             Vec2::new(-2.0, 0.0),
             &polygon
-        ).is_none());
+        )
+        .is_none());
 
         // Now test the collision with vertex at an angle.
-        let res = find_circle_vs_polygon_collision(
+        let res = find_particle_vs_polygon_collision(
             Vec2::new(2.99, -1.0),
             1.0,
             Vec2::new(0.0, 1.0),
             &polygon,
-        ).expect("Collision expected");
+        )
+        .expect("Collision expected");
         // Barely scraping the vertex. The exact result is hard to calculate
         // But roughly:
         assert!(math_core::approx_eq(res.0, 1.8, 0.1));
@@ -500,9 +520,9 @@ mod tests {
     }
 
     #[test]
-    fn test_collision_normal() {
+    fn test_particles_collision_normal() {
         // Identical centers and velocities
-        assert!(collision_normal(
+        assert!(particles_collision_normal(
             Vec2::new(1.0, 1.0),
             Vec2::new(1.0, 1.0),
             Vec2::new(1.0, 1.0),
@@ -510,7 +530,7 @@ mod tests {
         )
         .is_none());
         // Identical centers but different velocities
-        let res = collision_normal(
+        let res = particles_collision_normal(
             Vec2::new(1.0, 1.0),
             Vec2::new(1.0, 0.0),
             Vec2::new(1.0, 1.0),
@@ -522,7 +542,7 @@ mod tests {
             DOUBLE_COMPARE_EPS_STRICT
         ));
         // Different centers and velocities don't matter
-        let res = collision_normal(
+        let res = particles_collision_normal(
             Vec2::new(1.0, 1.0),
             Vec2::new(112.0, 323.0),
             Vec2::new(2.0, 2.0),
@@ -540,8 +560,8 @@ mod tests {
         let test = |m1, v1, m2, v2, n, c, expect_v1, expect_v2| {
             let impulse = collision_impulse(m1, v1, m2, v2, n, c);
             println!("impulse: {}", impulse);
-            let res1 = apply_impulse(m1, v1, -n * impulse);
-            let res2 = apply_impulse(m2, v2, n * impulse);
+            let res1 = apply_impulse(m1, v1, n * impulse);
+            let res2 = apply_impulse(m2, v2, -n * impulse);
             println!("res1: {}", res1);
             println!("res2: {}", res2);
             // Weighted summ of velocities is unchanged
@@ -607,5 +627,22 @@ mod tests {
             Vec2::new(-2.0, 3.0),
             Vec2::new(2.0, -2.0),
         );
+    }
+
+    #[test]
+    fn test_collision_impulse_stationary() {
+        // Hitting at 45 deg
+        let v = Vec2::new(0.0, 2.0);
+        let n = Vec2::new(1.0, -1.0).normalized().unwrap();
+        let impulse = collision_impulse_stationary(2.0, v, n, 1.0);
+        // Should bounce to the right.
+        let res_v = apply_impulse(2.0, v, impulse * n);
+        assert!(res_v.approx_eq(Vec2::new(2.0, 0.0), DOUBLE_COMPARE_EPS_STRICT));
+
+        // Same 45 deg hit. But with 0 coefficient of restitution
+        let impulse = collision_impulse_stationary(2.0, v, n, 0.0);
+        // Resulting velocity must be along wall
+        let res_v = apply_impulse(2.0, v, impulse * n);
+        assert!(res_v.approx_eq(Vec2::new(1.0, 1.0), DOUBLE_COMPARE_EPS_STRICT));
     }
 }

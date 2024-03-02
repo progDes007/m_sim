@@ -59,7 +59,7 @@ fn find_collisions_multi(
         let pos1 = p1.position - p1.velocity * particle_times[main_index];
         let pos2 = p2.position - p2.velocity * particle_times[i];
 
-        let collision_time = collision_utils::find_circle_vs_circle_collision(
+        let collision_time = collision_utils::find_particle_vs_particle_collision(
             pos1,
             class_map.get(&p1.class()).unwrap().radius(),
             p1.velocity,
@@ -285,7 +285,7 @@ mod tests {
         classes.insert(2, ParticleClass::new("Class2", 1.0, 2.0));
         // Lamda that resolve velocity
         let resolve_velocity = |p1: &Particle, p2: &Particle| {
-            let velocities = collision_utils::collision_separation_velocity(
+            let velocities = collision_utils::particles_collision_separation_velocity(
                 p1.position, p1.velocity, classes.get(&p1.class()).unwrap().mass(), 
                 p2.position, p2.velocity, classes.get(&p2.class()).unwrap().mass(), 
                 1.0);
