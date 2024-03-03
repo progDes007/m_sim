@@ -35,6 +35,14 @@ impl Simulation {
         &mut self.particles
     }
 
+    pub fn take_particles(&mut self) -> Vec<Particle> {
+        std::mem::take(&mut self.particles)
+    }
+
+    pub fn put_particles(&mut self, particles: Vec<Particle>) {
+        self.particles = particles;
+    }
+
     pub fn wall_classes(&self) -> &HashMap<ClassId, WallClass> {
         &self.wall_classes
     }

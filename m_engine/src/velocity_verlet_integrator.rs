@@ -1,6 +1,6 @@
-use crate::prelude::*;
+use crate::{prelude::*};
 use crate::{collision_utils, motion_resolver};
-use crate::{Integrator, Particle, ParticleClass};
+use crate::{Integrator, Particle, ParticleClass, Vec2, Wall, WallClass};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -18,24 +18,36 @@ impl Integrator for VelocityVerletIntegrator {
         &self,
         particles: &mut [Particle],
         particle_classes: &HashMap<ClassId, ParticleClass>,
+        walls: &[Wall],
+        wall_classes: &HashMap<ClassId, WallClass>,
         time_step: Duration,
     ) {
         let time_step_sec = time_step.as_secs_f64();
 
         // Lamda that resolve velocity
-        let resolve_velocity = |p1: &Particle, p2: &Particle| {
-            let velocities = collision_utils::particles_collision_separation_velocity(
-                p1.position,
-                p1.velocity,
-                particle_classes.get(&p1.class()).unwrap().mass(),
-                p2.position,
-                p2.velocity,
-                particle_classes.get(&p2.class()).unwrap().mass(),
-                1.0,
-            );
-            return velocities.unwrap();
+        let particle_vs_particle_resolver =
+            |p1: &Particle, p2: &Particle, collision_normal: Vec2| {
+                return collision_utils::particles_collision_separation_velocity(
+                    p1.velocity,
+                    particle_classes.get(&p1.class()).unwrap().mass(),
+                    p2.velocity,
+                    particle_classes.get(&p2.class()).unwrap().mass(),
+                    collision_normal,
+                    1.0,
+                );
+            };
+        let particle_vs_wall_resolver = |p: &Particle, w: &Wall, collision_normal: Vec2| {
+            return Vec2::new(0.0, 0.0);
         };
 
-        motion_resolver::resolve(particles, particle_classes, time_step_sec, resolve_velocity);
+        motion_resolver::resolve(
+            particles,
+            particle_classes,
+            walls,
+            wall_classes,
+            time_step_sec,
+            particle_vs_particle_resolver,
+            particle_vs_wall_resolver,
+        );
     }
 }

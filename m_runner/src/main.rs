@@ -1,4 +1,4 @@
-use m_engine::{generators, Polygon, Wall, WallClass};
+use m_engine::{generators, wall_class, Polygon, Wall, WallClass};
 use m_engine::{Integrator, ParticleClass, Simulation, Vec2, VelocityVerletIntegrator};
 use m_front::{bevy_front, WallSkin};
 use m_front::{Frame, ParticleSkin};
@@ -50,8 +50,6 @@ fn main() {
     // Launch the thread that generate frames
     let handle = std::thread::spawn(move || {
         let mut current_time = Duration::new(0, 0);
-        // clone classes to please borrow checker
-        let classes = simulation.particle_classes().clone();
         // Add 0 frame
         if let Err(_) = frames_tx.send((
             current_time.clone(),
@@ -62,8 +60,18 @@ fn main() {
 
         // Generate frames in a separate thread
         while current_time < SIMULATION_LEGTH {
+            // Take particles out to please borrow checker
+            let mut tmp_particles = simulation.take_particles();
             // Update simulation
-            integrator.step(simulation.particles_mut(), &classes, TIME_STEP);
+            integrator.step(
+                &mut tmp_particles,
+                simulation.particle_classes(),
+                simulation.walls(),
+                simulation.wall_classes(),
+                TIME_STEP,
+            );
+            // Return particles back
+            simulation.put_particles(tmp_particles);
             current_time += TIME_STEP;
             // Send frame
             if let Err(_) = frames_tx.send((

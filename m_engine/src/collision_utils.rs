@@ -207,15 +207,13 @@ pub(crate) fn apply_impulse(mass: f64, velocity: Vec2, impulse: Vec2) -> Vec2 {
 
 /// Calculate separation velocity after collision
 pub(crate) fn particles_collision_separation_velocity(
-    center1: Vec2,
     velocity1: Vec2,
     mass1: f64,
-    center2: Vec2,
     velocity2: Vec2,
     mass2: f64,
+    collision_normal: Vec2,
     coefficient_of_restitution: f64,
-) -> Option<(Vec2, Vec2)> {
-    let collision_normal = particles_collision_normal(center1, velocity1, center2, velocity2)?;
+) -> (Vec2, Vec2) {
     let impulse = collision_impulse(
         mass1,
         velocity1,
@@ -226,7 +224,18 @@ pub(crate) fn particles_collision_separation_velocity(
     );
     let new_velocity1 = apply_impulse(mass1, velocity1, collision_normal * impulse);
     let new_velocity2 = apply_impulse(mass2, velocity2, -collision_normal * impulse);
-    return Some((new_velocity1, new_velocity2));
+    return (new_velocity1, new_velocity2);
+}
+
+/// Calculate separation velocity after collision
+pub(crate) fn particles_vs_wall_collision_separation_velocity(
+    velocity1: Vec2,
+    mass1: f64,
+    collision_normal: Vec2,
+    coefficient_of_restitution: f64,
+) -> Vec2 {
+    let impulse = collision_impulse_stationary(mass1, velocity1, collision_normal, coefficient_of_restitution);
+    return apply_impulse(mass1, velocity1, collision_normal * impulse);
 }
 
 #[cfg(test)]
