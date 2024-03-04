@@ -1,4 +1,5 @@
 use crate::collision_utils;
+use crate::collision_utils::find_particle_vs_polygon_collision;
 use crate::prelude::*;
 use crate::{Particle, ParticleClass, Vec2, Wall, WallClass};
 use ordered_float;
@@ -111,6 +112,42 @@ fn find_collisions_with_particles(
     return collisions;
 }
 
+/// Finds all collisions between a particle and a range of walls
+fn find_collisions_with_walls(
+    particle_index: usize,
+    particle: &Particle,
+    particle_class: &ParticleClass,
+    other_walls: &[Wall],
+    particle_time: f64,
+    time_threshold: f64,
+) -> Vec<Collision> {
+    let mut collisions = vec![];
+
+    for (i, wall) in other_walls.iter().enumerate() {
+        // Bring particle to t=0
+        let pos = particle.position - particle.velocity * particle_time;
+        let collision_res = find_particle_vs_polygon_collision(
+            pos,
+            particle_class.radius(),
+            particle.velocity,
+            wall.polygon(),
+        );
+        if let Some((collision_time, collision_normal)) = collision_res {
+            // Check if the collision is in the future. But not too far in the future
+            if collision_time > particle_time && collision_time < time_threshold {
+                collisions.push(Collision {
+                    particle: particle_index,
+                    other: OtherObject::Wall(i),
+                    normal: collision_normal,
+                    time: ordered_float::OrderedFloat(collision_time),
+                });
+            }
+        }
+    }
+
+    return collisions;
+}
+
 pub(crate) fn resolve(
     particles: &mut [Particle],
     particle_class_map: &HashMap<ClassId, ParticleClass>,
@@ -147,8 +184,7 @@ pub(crate) fn resolve(
 
     // Keep resolving collisions while there are any
     while let Some(Reverse(collision)) = current_collisions.pop() {
-        if let OtherObject::Particle(particle2_idx) = collision.other
-        {
+        if let OtherObject::Particle(particle2_idx) = collision.other {
             // Advance both particles forward to the moment of collision
             let time_to_collision = collision.time.0;
             let mut particle1 = particles[collision.particle];
@@ -158,13 +194,12 @@ pub(crate) fn resolve(
             particle2.position +=
                 particle2.velocity * (time_to_collision - particle_time[particle2_idx]);
 
-
             // Resolve new velocities
             let (new_velocity1, new_velocity2) =
                 particle_vs_particle_velocity_resolver(&particle1, &particle2, collision.normal);
             particle1.velocity = new_velocity1;
             particle2.velocity = new_velocity2;
-        
+
             // Assign new particle state back
             particles[collision.particle] = particle1;
             particles[particle2_idx] = particle2;
@@ -174,12 +209,8 @@ pub(crate) fn resolve(
 
             // Delete all other collisions that involved these 2 particles.
             // They become invalid because particles velocity was altered
-            current_collisions.retain(|Reverse(c)| {
-                !c.involves_particle(collision.particle)
-            });
-            current_collisions.retain(|Reverse(c)| {
-                !c.involves_particle(particle2_idx)
-            });
+            current_collisions.retain(|Reverse(c)| !c.involves_particle(collision.particle));
+            current_collisions.retain(|Reverse(c)| !c.involves_particle(particle2_idx));
             // Now we need to calculate all new collisions with particle1 and particle2
             merge(
                 &mut current_collisions,
@@ -203,7 +234,6 @@ pub(crate) fn resolve(
                     timestep,
                 ),
             );
-            
         }
     }
     // When there are no more collisions left - just advance all particles to the end
@@ -214,8 +244,10 @@ pub(crate) fn resolve(
 
 #[cfg(test)]
 mod tests {
+    use core::time;
+
     use super::*;
-    use crate::math_core;
+    use crate::{math_core, particle, Polygon};
 
     // Test the ordered binary heap of collisions
     #[test]
@@ -316,6 +348,59 @@ mod tests {
         time_to_second += 20.0;
         // Note that we still only have 2 collisions because collisions in the "past" don't count
         test_and_assert(time_threshold, time_to_first, time_to_second, times.clone());
+    }
+
+    #[test]
+    fn test_find_collisions_with_walls() {
+        // Make 4 walls in a row
+        let wall1 = Wall::new(Polygon::new_rectangle(1.0, 1.0, 10.0, 2.0), 0);
+        let wall2 = Wall::new(Polygon::new_rectangle(1.0, 5.0, 10.0, 6.0), 0);
+        let wall3 = Wall::new(Polygon::new_rectangle(1.0, 9.0, 10.0, 10.0), 0);
+        let wall4 = Wall::new(Polygon::new_rectangle(1.0, 15.0, 10.0, 16.0), 0);
+        let walls = vec![wall1, wall2, wall3, wall4];
+
+        // Particle and class
+        let particle_class = ParticleClass::new("Class1", 1.0, 1.0);
+        let speed = 2.0;
+        let y0 = -1.0;
+        let mut particle = Particle::new(Vec2::new(4.0, y0), Vec2::new(0.0, speed), 1);
+        // Advance particle forward, so it cant hit wall 1
+        let particle_time = (3.0 - y0) / speed;
+        particle.position += particle.velocity * particle_time;
+
+        // Time threshold is such that it has not enought time to hit wall4
+        let time_threshold = (13.0 - y0) / speed;
+
+        // Find collisions
+        let collisions = find_collisions_with_walls(
+            123,
+            &particle,
+            &particle_class,
+            &walls,
+            particle_time,
+            time_threshold,
+        );
+        assert_eq!(collisions.len(), 2);
+        assert_eq!(collisions[0].particle, 123);
+        assert_eq!(collisions[0].other, OtherObject::Wall(1));
+        assert!(collisions[0]
+            .normal
+            .approx_eq(Vec2::new(0.0, -1.0), DOUBLE_COMPARE_EPS_STRICT));
+        assert!(math_core::approx_eq(
+            collisions[0].time.0,
+            (4.0 - y0) / speed,
+            DOUBLE_COMPARE_EPS_STRICT
+        ));
+        assert_eq!(collisions[1].particle, 123);
+        assert_eq!(collisions[1].other, OtherObject::Wall(2));
+        assert!(collisions[1]
+            .normal
+            .approx_eq(Vec2::new(0.0, -1.0), DOUBLE_COMPARE_EPS_STRICT));
+        assert!(math_core::approx_eq(
+            collisions[1].time.0,
+            (8.0 - y0) / speed,
+            DOUBLE_COMPARE_EPS_STRICT
+        ));
     }
 
     #[test]
