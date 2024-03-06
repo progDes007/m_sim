@@ -86,8 +86,10 @@ fn find_collisions_with_particles(
         );
         if let Some(collision_time) = collision_time {
             // Check if the collision is in the future. But not too far in the future
-            if collision_time > particle_times[main_index]
-                && collision_time > particle_times[i]
+            // Allow for collisions that are slightly in the past. These can appear due to
+            // floating point errors
+            if collision_time > (particle_times[main_index] - TIME_SEC_EPS)
+                && collision_time > (particle_times[i] - TIME_SEC_EPS)
                 && collision_time < time_threshold
             {
                 let normal = collision_utils::particles_collision_normal(
@@ -134,7 +136,9 @@ fn find_collisions_with_walls(
         );
         if let Some((collision_time, collision_normal)) = collision_res {
             // Check if the collision is in the future. But not too far in the future
-            if collision_time > particle_time && collision_time < time_threshold {
+            // Allow for collisions that are slightly in the past. These can appear due to
+            // floating point errors
+            if collision_time > (particle_time - TIME_SEC_EPS) && collision_time < time_threshold {
                 collisions.push(Collision {
                     particle: particle_index,
                     other: OtherObject::Wall(i),
@@ -256,11 +260,11 @@ pub(crate) fn resolve(
                 );
                 particles[collision.particle] = p1;
                 particles[particle2_idx] = p2;
-    
+
                 // Track the particle time
                 particle_time[collision.particle] = time_to_collision;
                 particle_time[particle2_idx] = time_to_collision;
-    
+
                 // Particle had collision. That means all other collisions with this particle
                 // are invalid. We need to recalculate them
                 particles_to_reset_collisions.push(collision.particle);
@@ -276,16 +280,15 @@ pub(crate) fn resolve(
                     particle_vs_wall_velocity_resolver,
                 );
                 particles[collision.particle] = p1;
-    
+
                 // Track the particle time
                 particle_time[collision.particle] = time_to_collision;
-    
+
                 // Particle had collision. That means all other collisions with this particle
                 // are invalid. We need to recalculate them
                 particles_to_reset_collisions.push(collision.particle);
             }
         }
-                
 
         // Delete all collisions of involved partciles
         for &particle_idx in &particles_to_reset_collisions {
@@ -329,7 +332,7 @@ pub(crate) fn resolve(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{math_core, Polygon};
+    use crate::{math_core, particle, Polygon};
 
     // Test the ordered binary heap of collisions
     #[test]
@@ -430,6 +433,42 @@ mod tests {
         time_to_second += 20.0;
         // Note that we still only have 2 collisions because collisions in the "past" don't count
         test_and_assert(time_threshold, time_to_first, time_to_second, times.clone());
+
+        {
+            // Test special case. When collision is barely in the past - it is still accepted
+            // Such collisions may happen due to floating point errors
+            let particle1 = Particle::new(
+                Vec2::new(0.0, 2.0 - TIME_SEC_EPS * 0.9 * 1.0),
+                Vec2::new(0.0, -1.0),
+                1,
+            );
+            let particle2 = Particle::new(Vec2::new(0.0, 0.0), Vec2::new(0.0, 0.0), 1);
+            let collisions = find_collisions_with_particles(
+                0,
+                0..2,
+                &[particle1, particle2],
+                &classes,
+                &[0.0, 0.0],
+                100.0,
+            );
+            assert_eq!(collisions.len(), 1);
+
+            // And case with collision that is deeper than time eps
+            let particle1 = Particle::new(
+                Vec2::new(0.0, 2.0 - TIME_SEC_EPS * 1.1 * 1.0),
+                Vec2::new(0.0, -1.0),
+                1,
+            );
+            let collisions = find_collisions_with_particles(
+                0,
+                0..2,
+                &[particle1, particle2],
+                &classes,
+                &[0.0, 0.0],
+                100.0,
+            );
+            assert_eq!(collisions.len(), 0);
+        }
     }
 
     #[test]
@@ -483,6 +522,20 @@ mod tests {
             (8.0 - y0) / speed,
             DOUBLE_COMPARE_EPS_STRICT
         ));
+
+        // Test special case. When collision is barely in the past - it is still accepted
+        // Such collisions may happen due to floating point errors
+        let y = 14.0 + TIME_SEC_EPS * 0.9 * 1.0;
+        let particle = Particle::new(Vec2::new(4.0, y), Vec2::new(0.0, 1.0), 1);
+        let collisions =
+            find_collisions_with_walls(123, &particle, &particle_class, &walls, 0.0, 100.0);
+        assert_eq!(collisions.len(), 1);
+        // And case with collision that is deeper than time eps
+        let y = 14.0 + TIME_SEC_EPS * 1.1 * 1.0;
+        let particle = Particle::new(Vec2::new(4.0, y), Vec2::new(0.0, 1.0), 1);
+        let collisions =
+            find_collisions_with_walls(123, &particle, &particle_class, &walls, 0.0, 100.0);
+        assert_eq!(collisions.len(), 0);
     }
 
     #[test]

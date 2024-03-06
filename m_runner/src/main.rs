@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::sync::mpsc;
 use std::time::Duration;
 
-static SIMULATION_LEGTH: Duration = Duration::new(10, 0);
+static SIMULATION_LEGTH: Duration = Duration::new(30, 0);
 static TIME_STEP: Duration = Duration::from_millis(20);
 
 fn main() {
@@ -31,8 +31,8 @@ fn main() {
 
     // spawn particles
     simulation.spawn_particles(&generators::generate_grid(
-        Vec2::ZERO,
-        Vec2::from_angle_rad(2.22),
+        Vec2::new(-20.0, -20.0),
+        Vec2::from_angle_rad(0.0),
         30.0,
         30.0,
         12,
