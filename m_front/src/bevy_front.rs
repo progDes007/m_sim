@@ -73,7 +73,7 @@ fn setup(
 
     // Spawn orthogonal camera
     let mut camera_bundle = Camera2dBundle::default();
-    camera_bundle.projection.scale = 1.0 / 10.0;
+    camera_bundle.projection.scale = 1.0 / 5.0;
     commands.spawn(camera_bundle);
 
     // Prepare global meshes

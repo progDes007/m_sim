@@ -148,14 +148,54 @@ fn find_collisions_with_walls(
     return collisions;
 }
 
+fn resolve_particle_vs_particle(
+    mut particle1: Particle,
+    mut particle2: Particle,
+    particle1_t: f64,
+    particle2_t: f64,
+    collision_t: f64,
+    collision_normal: Vec2,
+    velocity_resolver: &impl Fn(&Particle, &Particle, Vec2) -> (Vec2, Vec2),
+) -> (Particle, Particle) {
+    // Advance particles to the moment of collision
+    particle1.position += particle1.velocity * (collision_t - particle1_t);
+    particle2.position += particle2.velocity * (collision_t - particle2_t);
+
+    // Resolve new velocities
+    let (new_velocity1, new_velocity2) =
+        velocity_resolver(&particle1, &particle2, collision_normal);
+    particle1.velocity = new_velocity1;
+    particle2.velocity = new_velocity2;
+
+    return (particle1, particle2);
+}
+
+fn resolve_particle_vs_wall(
+    mut particle1: Particle,
+    wall: &Wall,
+    particle1_t: f64,
+    collision_t: f64,
+    collision_normal: Vec2,
+    velocity_resolver: &impl Fn(&Particle, &Wall, Vec2) -> Vec2,
+) -> Particle {
+    // Advance particle to the moment of collision
+    particle1.position += particle1.velocity * (collision_t - particle1_t);
+
+    // Resolve new velocity
+    let new_velocity = velocity_resolver(&particle1, wall, collision_normal);
+    particle1.velocity = new_velocity;
+
+    return particle1;
+}
+
 pub(crate) fn resolve(
     particles: &mut [Particle],
     particle_class_map: &HashMap<ClassId, ParticleClass>,
-    _walls: &[Wall],
-    _walls_map: &HashMap<ClassId, WallClass>,
+    walls: &[Wall],
+    _walls_class_map: &HashMap<ClassId, WallClass>,
     timestep: f64,
-    particle_vs_particle_velocity_resolver: impl Fn(&Particle, &Particle, Vec2) -> (Vec2, Vec2),
-    _particle_vs_wall_velocity_resolver: impl Fn(&Particle, &Wall, Vec2) -> Vec2,
+    particle_vs_particle_velocity_resolver: &impl Fn(&Particle, &Particle, Vec2) -> (Vec2, Vec2),
+    particle_vs_wall_velocity_resolver: &impl Fn(&Particle, &Wall, Vec2) -> Vec2,
 ) {
     // For each particle we shall track the time we already simulated
     let mut particle_time: Vec<f64> = vec![0.0; particles.len()];
@@ -169,6 +209,7 @@ pub(crate) fn resolve(
 
     // Generate collisions for each vs each
     for i in 0..particles.len() - 1 {
+        // With particles in front
         merge(
             &mut current_collisions,
             &find_collisions_with_particles(
@@ -180,42 +221,83 @@ pub(crate) fn resolve(
                 timestep,
             ),
         );
+        // With all wals
+        merge(
+            &mut current_collisions,
+            &find_collisions_with_walls(
+                i,
+                &particles[i],
+                particle_class_map.get(&particles[i].class()).unwrap(),
+                walls,
+                particle_time[i],
+                timestep,
+            ),
+        );
     }
 
     // Keep resolving collisions while there are any
     while let Some(Reverse(collision)) = current_collisions.pop() {
-        if let OtherObject::Particle(particle2_idx) = collision.other {
-            // Advance both particles forward to the moment of collision
-            let time_to_collision = collision.time.0;
-            let mut particle1 = particles[collision.particle];
-            particle1.position +=
-                particle1.velocity * (time_to_collision - particle_time[collision.particle]);
-            let mut particle2 = particles[particle2_idx];
-            particle2.position +=
-                particle2.velocity * (time_to_collision - particle_time[particle2_idx]);
+        let time_to_collision = collision.time.0;
 
-            // Resolve new velocities
-            let (new_velocity1, new_velocity2) =
-                particle_vs_particle_velocity_resolver(&particle1, &particle2, collision.normal);
-            particle1.velocity = new_velocity1;
-            particle2.velocity = new_velocity2;
+        // Track the particles that collided and need collision reset
+        let mut particles_to_reset_collisions = vec![];
 
-            // Assign new particle state back
-            particles[collision.particle] = particle1;
-            particles[particle2_idx] = particle2;
-            // Track the particle time
-            particle_time[collision.particle] = time_to_collision;
-            particle_time[particle2_idx] = time_to_collision;
+        // Collision with other particle
+        match collision.other {
+            OtherObject::Particle(particle2_idx) => {
+                let (p1, p2) = resolve_particle_vs_particle(
+                    particles[collision.particle],
+                    particles[particle2_idx],
+                    particle_time[collision.particle],
+                    particle_time[particle2_idx],
+                    time_to_collision,
+                    collision.normal,
+                    particle_vs_particle_velocity_resolver,
+                );
+                particles[collision.particle] = p1;
+                particles[particle2_idx] = p2;
+    
+                // Track the particle time
+                particle_time[collision.particle] = time_to_collision;
+                particle_time[particle2_idx] = time_to_collision;
+    
+                // Particle had collision. That means all other collisions with this particle
+                // are invalid. We need to recalculate them
+                particles_to_reset_collisions.push(collision.particle);
+                particles_to_reset_collisions.push(particle2_idx);
+            }
+            OtherObject::Wall(wall_idx) => {
+                let p1 = resolve_particle_vs_wall(
+                    particles[collision.particle],
+                    &walls[wall_idx],
+                    particle_time[collision.particle],
+                    time_to_collision,
+                    collision.normal,
+                    particle_vs_wall_velocity_resolver,
+                );
+                particles[collision.particle] = p1;
+    
+                // Track the particle time
+                particle_time[collision.particle] = time_to_collision;
+    
+                // Particle had collision. That means all other collisions with this particle
+                // are invalid. We need to recalculate them
+                particles_to_reset_collisions.push(collision.particle);
+            }
+        }
+                
 
-            // Delete all other collisions that involved these 2 particles.
-            // They become invalid because particles velocity was altered
-            current_collisions.retain(|Reverse(c)| !c.involves_particle(collision.particle));
-            current_collisions.retain(|Reverse(c)| !c.involves_particle(particle2_idx));
-            // Now we need to calculate all new collisions with particle1 and particle2
+        // Delete all collisions of involved partciles
+        for &particle_idx in &particles_to_reset_collisions {
+            current_collisions.retain(|Reverse(c)| !c.involves_particle(particle_idx));
+        }
+
+        // Generate new collisions for each involved particle
+        for &particle_idx in &particles_to_reset_collisions {
             merge(
                 &mut current_collisions,
                 &find_collisions_with_particles(
-                    collision.particle,
+                    particle_idx,
                     0..particles.len(),
                     particles,
                     particle_class_map,
@@ -225,12 +307,14 @@ pub(crate) fn resolve(
             );
             merge(
                 &mut current_collisions,
-                &find_collisions_with_particles(
-                    particle2_idx,
-                    0..particles.len(),
-                    particles,
-                    particle_class_map,
-                    &particle_time,
+                &find_collisions_with_walls(
+                    particle_idx,
+                    &particles[particle_idx],
+                    particle_class_map
+                        .get(&particles[particle_idx].class())
+                        .unwrap(),
+                    walls,
+                    particle_time[particle_idx],
                     timestep,
                 ),
             );
@@ -244,10 +328,8 @@ pub(crate) fn resolve(
 
 #[cfg(test)]
 mod tests {
-    use core::time;
-
     use super::*;
-    use crate::{math_core, particle, Polygon};
+    use crate::{math_core, Polygon};
 
     // Test the ordered binary heap of collisions
     #[test]
@@ -452,8 +534,8 @@ mod tests {
             &[],
             &HashMap::new(),
             30.0,
-            resolve_velocity,
-            resolve_wall,
+            &resolve_velocity,
+            &resolve_wall,
         );
 
         // Check the result

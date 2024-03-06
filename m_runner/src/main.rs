@@ -37,13 +37,16 @@ fn main() {
         30.0,
         12,
         12,
-        generators::random_velocity(60.0),
+        generators::random_velocity(30.0),
         1,
     ));
 
     // spawn walls
-    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-2.0, -2.0, -1.0, 10.0), 1));
-
+    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(50.0, -51.0, 51.0, 51.0), 1));
+    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-51.0, -51.0, -50.0, 51.0), 1));
+    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-51.0, -51.0, 51.0, -50.0), 1));
+    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-51.0, 50.0, 51.0, 51.0), 1));
+   
     // make integrator
     let integrator = VelocityVerletIntegrator::new();
 

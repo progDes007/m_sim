@@ -1,4 +1,4 @@
-use crate::{prelude::*};
+use crate::prelude::*;
 use crate::{collision_utils, motion_resolver};
 use crate::{Integrator, Particle, ParticleClass, Vec2, Wall, WallClass};
 use std::collections::HashMap;
@@ -37,7 +37,17 @@ impl Integrator for VelocityVerletIntegrator {
                 );
             };
         let particle_vs_wall_resolver = |p: &Particle, w: &Wall, collision_normal: Vec2| {
-            return Vec2::new(0.0, 0.0);
+            let m = particle_classes.get(&p.class()).unwrap().mass();
+            let c = wall_classes
+                .get(&w.class())
+                .unwrap()
+                .coefficient_of_restitution();
+            return collision_utils::particles_vs_wall_collision_separation_velocity(
+                p.velocity,
+                m,
+                collision_normal,
+                c,
+            );
         };
 
         motion_resolver::resolve(
@@ -46,8 +56,8 @@ impl Integrator for VelocityVerletIntegrator {
             walls,
             wall_classes,
             time_step_sec,
-            particle_vs_particle_resolver,
-            particle_vs_wall_resolver,
+            &particle_vs_particle_resolver,
+            &particle_vs_wall_resolver,
         );
     }
 }
