@@ -1,3 +1,4 @@
+use crate::prelude::DOUBLE_COMPARE_EPS_STRICT;
 use crate::{math_core, LineSegment};
 use crate::{Plane, Polygon, Vec2};
 use std::option::Option;
@@ -12,7 +13,7 @@ pub(crate) fn find_circle_vs_origin_collision(
 ) -> Option<f64> {
     // First check if we even approaching or moving apart.
     // If we have overlap but we are moving apart - no collision.
-    if velocity1.dot(center1) > 0.0 {
+    if velocity1.dot(center1) >= 0.0 {
         return None;
     }
     // The equation we need to solve is:
@@ -27,7 +28,16 @@ pub(crate) fn find_circle_vs_origin_collision(
     match t {
         Some((t1, t2)) => {
             // No exra logic is needed because we handled the case of moving apart
-            return Some(t1.min(t2));
+            let t = t1.min(t2);
+            // We need to filter out the tangential collision
+            let res_center = center1 + velocity1 * t;
+            let v1 = res_center.normalized().unwrap();
+            let v2 = velocity1.normalized().unwrap();
+            if v1.dot(v2).abs() < DOUBLE_COMPARE_EPS_STRICT {
+                return None;
+            }
+
+            return Some(t);
         }
         None => {
             return None;
@@ -278,6 +288,12 @@ mod tests {
             find_circle_vs_origin_collision(Vec2::new(1.0, -5.0), 0.999, Vec2::new(0.0, 2.0))
                 .is_none()
         );
+
+        // Tangent - no collision
+        let res =
+            find_circle_vs_origin_collision(Vec2::new(1.0, -5.0), 1.0, Vec2::new(0.0, 2.0));
+        assert!(res.is_none());
+
     }
 
     #[test]
