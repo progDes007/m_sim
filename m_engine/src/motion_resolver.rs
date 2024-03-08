@@ -212,7 +212,7 @@ pub(crate) fn resolve(
     };
 
     // Generate collisions for each vs each
-    for i in 0..particles.len() - 1 {
+    for i in 0..particles.len() {
         // With particles in front
         merge(
             &mut current_collisions,
