@@ -1,7 +1,7 @@
 use crate::collision_utils;
 use crate::collision_utils::find_particle_vs_polygon_collision;
 use crate::prelude::*;
-use crate::{Particle, ParticleClass, Vec2, Wall};
+use crate::{Particle, ParticleClass, Vec2, Wall, WallClass};
 use ordered_float;
 use std::cmp::{Ord, PartialOrd, Reverse};
 use std::collections::BinaryHeap;
@@ -328,10 +328,37 @@ pub(crate) fn resolve(
     }
 }
 
+pub fn default_particle_vs_particle_velocity_resovler<'a>(
+    particle_classes: &'a HashMap<ClassId, ParticleClass>
+) -> impl Fn(&Particle, &Particle, Vec2) -> (Vec2, Vec2) + 'a {
+    move |p1: &Particle, p2: &Particle, n: Vec2| {
+        collision_utils::particles_collision_separation_velocity(
+            p1.velocity,
+            particle_classes.get(&p1.class()).unwrap().mass(),
+            p2.velocity,
+            particle_classes.get(&p2.class()).unwrap().mass(),
+            n,
+            1.0,
+        )
+    }
+}
+
+pub fn default_particle_vs_wall_velocity_resolver<'a>(
+    wall_classes: &'a HashMap<ClassId, WallClass>
+) -> impl Fn(&Particle, &Wall, Vec2) -> Vec2 + 'a {
+    move |p: &Particle, w: &Wall, n: Vec2| {
+        collision_utils::particles_vs_wall_collision_separation_velocity(
+            p.velocity,
+            n,
+            wall_classes.get(&w.class()).unwrap().coefficient_of_restitution(),
+        )
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{math_core, particle, Polygon};
+    use crate::{math_core, Polygon, WallClass};
 
     // Test the ordered binary heap of collisions
     #[test]
@@ -545,19 +572,12 @@ mod tests {
         let mut classes = HashMap::new();
         classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
         classes.insert(2, ParticleClass::new("Class2", 1.0, 2.0));
+        let wall_classes = HashMap::new();
         // Lamda that resolve velocity
-        let resolve_velocity = |p1: &Particle, p2: &Particle, n: Vec2| {
-            return collision_utils::particles_collision_separation_velocity(
-                p1.velocity,
-                classes.get(&p1.class()).unwrap().mass(),
-                p2.velocity,
-                classes.get(&p2.class()).unwrap().mass(),
-                n,
-                1.0,
-            );
-        };
+        let resolve_velocity = default_particle_vs_particle_velocity_resovler(&classes);
+
         // resolver with walls. Is not needed
-        let resolve_wall = |_: &Particle, _: &Wall, _: Vec2| -> Vec2 { Vec2::new(0.0, 0.0) };
+        let resolve_wall = default_particle_vs_wall_velocity_resolver(&wall_classes);
 
         // Add particles
         let mut particles = vec![
@@ -655,28 +675,8 @@ mod tests {
 
 
         // Lamda that resolve velocity
-        let resolve_p_p = |p1: &Particle, p2: &Particle, n: Vec2| {
-            return collision_utils::particles_collision_separation_velocity(
-                p1.velocity,
-                particle_classes.get(&p1.class()).unwrap().mass(),
-                p2.velocity,
-                particle_classes.get(&p2.class()).unwrap().mass(),
-                n,
-                1.0,
-            );
-        };
-        let resolve_p_w = |p: &Particle, w: &Wall, collision_normal: Vec2| -> Vec2 
-        {
-            let c = wall_classes
-                .get(&w.class())
-                .unwrap()
-                .coefficient_of_restitution();
-            return collision_utils::particles_vs_wall_collision_separation_velocity(
-                p.velocity,
-                collision_normal,
-                c,
-            );
-        };
+        let resolve_p_p = default_particle_vs_particle_velocity_resovler(&particle_classes);
+        let resolve_p_w = default_particle_vs_wall_velocity_resolver(&wall_classes);
         
         
         // Make a box for a scene (about 8x8 on the inside)

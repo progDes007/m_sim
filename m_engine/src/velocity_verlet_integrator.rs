@@ -1,6 +1,6 @@
 use crate::prelude::*;
-use crate::{collision_utils, motion_resolver};
-use crate::{Integrator, Particle, ParticleClass, Vec2, Wall, WallClass};
+use crate::{motion_resolver};
+use crate::{Integrator, Particle, ParticleClass, Wall, WallClass};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -26,27 +26,9 @@ impl Integrator for VelocityVerletIntegrator {
 
         // Lamda that resolve velocity
         let particle_vs_particle_resolver =
-            |p1: &Particle, p2: &Particle, collision_normal: Vec2| {
-                return collision_utils::particles_collision_separation_velocity(
-                    p1.velocity,
-                    particle_classes.get(&p1.class()).unwrap().mass(),
-                    p2.velocity,
-                    particle_classes.get(&p2.class()).unwrap().mass(),
-                    collision_normal,
-                    1.0,
-                );
-            };
-        let particle_vs_wall_resolver = |p: &Particle, w: &Wall, collision_normal: Vec2| {
-            let c = wall_classes
-                .get(&w.class())
-                .unwrap()
-                .coefficient_of_restitution();
-            return collision_utils::particles_vs_wall_collision_separation_velocity(
-                p.velocity,
-                collision_normal,
-                c,
-            );
-        };
+            motion_resolver::default_particle_vs_particle_velocity_resovler(particle_classes);
+        let particle_vs_wall_resolver =
+            motion_resolver::default_particle_vs_wall_velocity_resolver(wall_classes);
 
         motion_resolver::resolve(
             particles,
