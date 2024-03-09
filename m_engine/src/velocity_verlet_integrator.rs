@@ -37,14 +37,12 @@ impl Integrator for VelocityVerletIntegrator {
                 );
             };
         let particle_vs_wall_resolver = |p: &Particle, w: &Wall, collision_normal: Vec2| {
-            let m = particle_classes.get(&p.class()).unwrap().mass();
             let c = wall_classes
                 .get(&w.class())
                 .unwrap()
                 .coefficient_of_restitution();
             return collision_utils::particles_vs_wall_collision_separation_velocity(
                 p.velocity,
-                m,
                 collision_normal,
                 c,
             );
@@ -54,7 +52,6 @@ impl Integrator for VelocityVerletIntegrator {
             particles,
             particle_classes,
             walls,
-            wall_classes,
             time_step_sec,
             &particle_vs_particle_resolver,
             &particle_vs_wall_resolver,

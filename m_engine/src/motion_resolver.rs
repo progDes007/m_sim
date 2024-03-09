@@ -1,7 +1,7 @@
 use crate::collision_utils;
 use crate::collision_utils::find_particle_vs_polygon_collision;
 use crate::prelude::*;
-use crate::{Particle, ParticleClass, Vec2, Wall, WallClass};
+use crate::{Particle, ParticleClass, Vec2, Wall};
 use ordered_float;
 use std::cmp::{Ord, PartialOrd, Reverse};
 use std::collections::BinaryHeap;
@@ -196,7 +196,6 @@ pub(crate) fn resolve(
     particles: &mut [Particle],
     particle_class_map: &HashMap<ClassId, ParticleClass>,
     walls: &[Wall],
-    _walls_class_map: &HashMap<ClassId, WallClass>,
     timestep: f64,
     particle_vs_particle_velocity_resolver: &impl Fn(&Particle, &Particle, Vec2) -> (Vec2, Vec2),
     particle_vs_wall_velocity_resolver: &impl Fn(&Particle, &Wall, Vec2) -> Vec2,
@@ -585,7 +584,6 @@ mod tests {
             &mut particles,
             &classes,
             &[],
-            &HashMap::new(),
             30.0,
             &resolve_velocity,
             &resolve_wall,
@@ -641,4 +639,97 @@ mod tests {
             .velocity
             .approx_eq(Vec2::new(0.0, 0.0), DISTANCE_EPS));
     }
+
+    #[test]
+    pub fn test_resolve_long() {
+        // Main utility of resolve() function is to resolve multiple collisions
+        // happening at the same time step.
+        // One way to test it's correctness is compare results of multiple tiny steps
+        // with results of single large steps.
+
+        // Make single wall class and single particles class
+        let mut particle_classes = HashMap::new();
+        particle_classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
+        let mut wall_classes = HashMap::new();
+        wall_classes.insert(1, WallClass::new("Wall", 1.0));
+
+
+        // Lamda that resolve velocity
+        let resolve_p_p = |p1: &Particle, p2: &Particle, n: Vec2| {
+            return collision_utils::particles_collision_separation_velocity(
+                p1.velocity,
+                particle_classes.get(&p1.class()).unwrap().mass(),
+                p2.velocity,
+                particle_classes.get(&p2.class()).unwrap().mass(),
+                n,
+                1.0,
+            );
+        };
+        let resolve_p_w = |p: &Particle, w: &Wall, collision_normal: Vec2| -> Vec2 
+        {
+            let c = wall_classes
+                .get(&w.class())
+                .unwrap()
+                .coefficient_of_restitution();
+            return collision_utils::particles_vs_wall_collision_separation_velocity(
+                p.velocity,
+                collision_normal,
+                c,
+            );
+        };
+        
+        
+        // Make a box for a scene (about 8x8 on the inside)
+        let walls = Wall::make_box(-5.0, -5.0, 5.0, 5.0, 1.0, 1);
+        // Add some particles flying in random directions
+        let mut particles1 = vec![
+            Particle::new(Vec2::new(-2.0, 2.0), Vec2::new(1.0, 2.0), 1),
+            Particle::new(Vec2::new(2.0, 2.0), Vec2::new(-1.12, -5.0), 1),
+            Particle::new(Vec2::new(2.0, -2.0), Vec2::new(-3.12, -1.0), 1),
+            Particle::new(Vec2::new(-2.0, -2.0), Vec2::new(8.12, 0.5), 1),
+            Particle::new(Vec2::new(0.0, 0.0), Vec2::new(3.0, 1.0), 1),
+        ];
+        // Second copy of particles to simulate
+        let mut particles2 = particles1.clone();
+
+        // Configure simulation duration
+        // Pick reasonable duration that would involve multiple collisions
+        // Can't take too large of a duration because this is chaotic system
+        // and even numerical errors can lead divergence in long run
+        // The divergence is actually very significant. So can't stretch this too much
+        let duration = 10.0;
+        let steps = 50;
+        let time_step = duration / steps as f64;
+
+        // First is simulated in single step
+        resolve(
+            &mut particles1,
+            &particle_classes,
+            &walls,
+            duration,
+            &resolve_p_p,
+            &resolve_p_w,
+        );
+
+        // Second is simulated in multiple steps
+        for _ in 0..steps {
+            resolve(
+                &mut particles2,
+                &particle_classes,
+                &walls,
+                time_step,
+                &resolve_p_p,
+                &resolve_p_w,
+            );
+        }
+
+        // use larger epsilon to counter numerical errors buildup
+        let eps = 0.01;
+        // Now compare
+        for (p1, p2) in particles1.iter().zip(particles2.iter()) {
+            assert!(p1.position.approx_eq(p2.position, eps));
+            assert!(p1.velocity.approx_eq(p2.velocity, eps));
+        }
+    }
+
 }

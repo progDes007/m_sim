@@ -42,11 +42,8 @@ fn main() {
     ));
 
     // spawn walls
-    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(50.0, -51.0, 51.0, 51.0), 1));
-    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-51.0, -51.0, -50.0, 51.0), 1));
-    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-51.0, -51.0, 51.0, -50.0), 1));
-    simulation.spawn_wall(Wall::new(Polygon::new_rectangle(-51.0, 50.0, 51.0, 51.0), 1));
-   
+    simulation.spawn_walls(&Wall::make_box(-50.0, -50.0, 50.0, 50.0, 1.0, 1));
+
     // make integrator
     let integrator = VelocityVerletIntegrator::new();
 

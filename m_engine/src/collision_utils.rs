@@ -240,12 +240,12 @@ pub(crate) fn particles_collision_separation_velocity(
 /// Calculate separation velocity after collision
 pub(crate) fn particles_vs_wall_collision_separation_velocity(
     velocity1: Vec2,
-    mass1: f64,
     collision_normal: Vec2,
     coefficient_of_restitution: f64,
 ) -> Vec2 {
-    let impulse = collision_impulse_stationary(mass1, velocity1, collision_normal, coefficient_of_restitution);
-    return apply_impulse(mass1, velocity1, collision_normal * impulse);
+    // Because wall is immoveable - we don't need real mass
+    let impulse = collision_impulse_stationary(1.0, velocity1, collision_normal, coefficient_of_restitution);
+    return apply_impulse(1.0, velocity1, collision_normal * impulse);
 }
 
 #[cfg(test)]
