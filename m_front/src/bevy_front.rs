@@ -1,5 +1,4 @@
-use crate::components::FramesTimeline;
-use crate::components::PlaybackControl;
+use crate::components::{FramesTimeline, PlaybackControl, TimeIndicator};
 use crate::resources::{GlobalMaterials, GlobalMeshes, SimInfo, SkinGraphics, TextStyles};
 use crate::systems;
 use crate::{Frame, ParticleSkin, WallSkin};
@@ -35,6 +34,7 @@ pub fn run(
             systems::playback::advance_time
                 .after(systems::playback::poll_frames)
                 .after(systems::playback::read_user_input),
+            systems::playback::update_time_indicator.after(systems::playback::advance_time),
             systems::particles_update::particle_spawn_despawn
                 .after(systems::playback::advance_time),
             systems::walls_update::wall_spawn_despawn.after(systems::playback::advance_time),
@@ -72,24 +72,35 @@ fn setup(
     text_styles: Res<TextStyles>,
     mut commands: Commands,
 ) {
-    // Spawn entity for playback control
-    commands.spawn(PlaybackControl::new());
-
     // Spawn orthogonal camera
     let mut camera_bundle = Camera2dBundle::default();
     camera_bundle.projection.scale = 1.0 / 5.0;
     commands.spawn(camera_bundle);
 
+    // Spawn entity for playback control
+    commands.spawn(PlaybackControl::new());
+
+    // Spawn time indicator text
+    commands.spawn((
+        // Create a TextBundle that has a Text with a single section.
+        TextBundle::from_section("Time: 0:00.000", text_styles.main_style.clone())
+            .with_text_alignment(TextAlignment::Center)
+            .with_style(Style {
+                position_type: PositionType::Absolute,
+                bottom: Val::Px(5.0),
+                right: Val::Px(5.0),
+                ..default()
+            }),
+        TimeIndicator {},
+    ));
+
     // Spawn text for instructions
     commands.spawn(
-        // Create a TextBundle that has a Text with a single section.
         TextBundle::from_section(
-            // Accepts a `String` or any type that converts into a `String`, such as `&str`
             "Controls: [Space] - play/pause, [Left]/[Right] - rewind/forward",
             text_styles.main_style.clone(),
-        ) // Set the justification of the Text
+        )
         .with_text_alignment(TextAlignment::Center)
-        // Set the style of the TextBundle itself.
         .with_style(Style {
             position_type: PositionType::Absolute,
             bottom: Val::Px(5.0),

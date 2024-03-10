@@ -67,6 +67,10 @@ impl PlaybackControl {
     }
 }
 
+/// This component is marker for the time indicator text
+#[derive(Debug, Clone, Component)]
+pub(crate) struct TimeIndicator;
+
 #[cfg(test)]
 mod tests {
     use super::*;

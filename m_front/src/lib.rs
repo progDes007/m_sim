@@ -33,7 +33,7 @@ mod components
     pub(crate) mod objects;
 
     pub(crate) use frames_timeline::FramesTimeline;
-    pub(crate) use playback_control::PlaybackControl;
+    pub(crate) use playback_control::{PlaybackControl, TimeIndicator};
     pub(crate) use objects::Particle;
     pub(crate) use objects::Wall;
 }

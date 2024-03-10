@@ -1,5 +1,4 @@
-use crate::components::FramesTimeline;
-use crate::components::PlaybackControl;
+use crate::components::{FramesTimeline, PlaybackControl, TimeIndicator};
 use crate::resources::SimInfo;
 use bevy::prelude::*;
 
@@ -63,5 +62,24 @@ pub fn advance_time(
 pub fn start_playback(mut playback_query: Query<&mut PlaybackControl>) {
     for mut playback_control in &mut playback_query {
         playback_control.set_playing(true);
+    }
+}
+
+// System that updates time indicator text
+pub fn update_time_indicator(
+    mut query: Query<(&TimeIndicator, &mut Text)>,
+    playback_query: Query<&PlaybackControl>,
+) {
+    let playback_control = playback_query.single();
+    let time = playback_control.current_time();
+    let time_string = format!(
+        "Time: {:02}:{:02}.{:03}",
+        time.as_secs() / 60,
+        time.as_secs() % 60,
+        time.subsec_millis()
+    );
+
+    for (_, mut text) in &mut query {
+        text.sections[0].value = time_string.clone();
     }
 }
