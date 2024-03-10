@@ -1,6 +1,6 @@
 use crate::components::FramesTimeline;
 use crate::components::PlaybackControl;
-use crate::resources::{GlobalMaterials, GlobalMeshes, SimInfo, SkinGraphics};
+use crate::resources::{GlobalMaterials, GlobalMeshes, SimInfo, SkinGraphics, TextStyles};
 use crate::systems;
 use crate::{Frame, ParticleSkin, WallSkin};
 use bevy::app::App;
@@ -54,6 +54,7 @@ pub fn run(
     app.insert_resource(GlobalMeshes::new());
     app.insert_resource(GlobalMaterials::new());
     app.insert_resource(SkinGraphics::new());
+    app.insert_resource(TextStyles::new());
 
     // Spawn entity for timeline
     app.world.spawn(FramesTimeline::new(frames_rx));
@@ -68,6 +69,7 @@ fn setup(
     mut global_materials_res: ResMut<GlobalMaterials>,
     mut mesh_assets: ResMut<Assets<Mesh>>,
     mut material_assets: ResMut<Assets<ColorMaterial>>,
+    text_styles: Res<TextStyles>,
     mut commands: Commands,
 ) {
     // Spawn entity for playback control
@@ -77,6 +79,24 @@ fn setup(
     let mut camera_bundle = Camera2dBundle::default();
     camera_bundle.projection.scale = 1.0 / 5.0;
     commands.spawn(camera_bundle);
+
+    // Spawn text for instructions
+    commands.spawn(
+        // Create a TextBundle that has a Text with a single section.
+        TextBundle::from_section(
+            // Accepts a `String` or any type that converts into a `String`, such as `&str`
+            "Controls: [Space] - play/pause, [Left]/[Right] - rewind/forward",
+            text_styles.main_style.clone(),
+        ) // Set the justification of the Text
+        .with_text_alignment(TextAlignment::Center)
+        // Set the style of the TextBundle itself.
+        .with_style(Style {
+            position_type: PositionType::Absolute,
+            bottom: Val::Px(5.0),
+            left: Val::Px(5.0),
+            ..default()
+        }),
+    );
 
     // Prepare global meshes
     let unit_circle_mesh = mesh_assets.add(Mesh::from(shape::Circle::new(1.0)));

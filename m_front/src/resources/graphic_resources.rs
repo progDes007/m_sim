@@ -46,3 +46,20 @@ impl SkinGraphics{
         }
     }
 }
+
+#[derive(Debug, Clone, Resource)]
+pub(crate) struct TextStyles{
+    pub main_style : TextStyle
+}
+
+impl TextStyles{
+    pub fn new() -> Self {
+        Self {
+            main_style : TextStyle {
+                font_size: 16.0,
+                font: Default::default(),
+                ..default()
+            }
+        }
+    }
+}

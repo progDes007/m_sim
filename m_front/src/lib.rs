@@ -23,6 +23,7 @@ mod resources
     pub(crate) use graphic_resources::GlobalMeshes;
     pub(crate) use graphic_resources::GlobalMaterials;
     pub(crate) use graphic_resources::SkinGraphics;
+    pub(crate) use graphic_resources::TextStyles;
 }
 
 mod components
