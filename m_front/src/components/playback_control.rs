@@ -7,6 +7,7 @@ use std::time::Duration;
 #[derive(Debug, Clone, Component)]
 pub(crate) struct PlaybackControl {
     is_playing: bool,
+    rewind: Option<f64>,
     current_time: Duration,
 }
 
@@ -14,6 +15,7 @@ impl PlaybackControl {
     pub fn new() -> Self {
         PlaybackControl {
             is_playing: false,
+            rewind: None,
             current_time: Duration::new(0, 0),
         }
     }
@@ -30,20 +32,37 @@ impl PlaybackControl {
         self.is_playing = is_playing;
     }
 
+    pub fn set_rewind(&mut self, rewind: Option<f64>) {
+        self.rewind = rewind;
+    }
+
     pub fn _seek(&mut self, current_time: Duration) {
         self.current_time = current_time;
     }
 
     pub fn step(&mut self, time_step: Duration, soft_end: Duration, hard_end: Duration) {
-        if self.is_playing() {
-            self.current_time += time_step;
-            let effective_end = min(soft_end, hard_end);
-            self.current_time = min(self.current_time, effective_end);
-            let stop = self.current_time >= hard_end;
-
-            if stop {
-                self.set_playing(false);
+        // Select the update speed and direction
+        let mult = if let Some(rewind) = self.rewind {
+            rewind
+        } else {
+            if self.is_playing() {
+                1.0
+            } else {
+                0.0
             }
+        };
+
+        if mult < 0.0 {
+            self.current_time = self.current_time.saturating_sub(time_step.mul_f64(-mult));
+        } else if mult > 0.0 {
+            self.current_time += time_step.mul_f64(mult);
+        }
+        let effective_end = min(soft_end, hard_end);
+        self.current_time = min(self.current_time, effective_end);
+        let stop = self.current_time >= hard_end;
+
+        if stop {
+            self.set_playing(false);
         }
     }
 }
@@ -83,6 +102,30 @@ mod tests {
             Duration::new(20, 0),
         );
         assert_eq!(playback.current_time(), Duration::new(3, 0));
+        // Rewind back to 1
+        playback.rewind = Some(-2.0);
+        playback.step(
+            Duration::new(1, 0),
+            Duration::new(10, 0),
+            Duration::new(20, 0),
+        );
+        assert_eq!(playback.current_time(), Duration::new(1, 0));
+        // Rewind back a lot. Clamps to 0
+        playback.rewind = Some(-2.0);
+        playback.step(
+            Duration::new(10, 0),
+            Duration::new(10, 0),
+            Duration::new(20, 0),
+        );
+        assert_eq!(playback.current_time(), Duration::new(0, 0));
+        // Fast forward to 3
+        playback.rewind = Some(1.0);
+        playback.step(
+            Duration::new(3, 0),
+            Duration::new(10, 0),
+            Duration::new(20, 0),
+        );
+        playback.rewind = None;
 
         // When hitting soft end, the time is clamped. But playback continues
         playback.step(

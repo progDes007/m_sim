@@ -31,11 +31,13 @@ pub fn run(
         PreUpdate,
         (
             systems::playback::poll_frames,
-            systems::playback::advance_time.after(systems::playback::poll_frames),
+            systems::playback::read_user_input,
+            systems::playback::advance_time
+                .after(systems::playback::poll_frames)
+                .after(systems::playback::read_user_input),
             systems::particles_update::particle_spawn_despawn
                 .after(systems::playback::advance_time),
-            systems::walls_update::wall_spawn_despawn.after(
-                systems::playback::advance_time)
+            systems::walls_update::wall_spawn_despawn.after(systems::playback::advance_time),
         ),
     );
     app.add_systems(
