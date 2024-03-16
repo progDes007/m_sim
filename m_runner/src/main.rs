@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use std::sync::mpsc;
 use std::time::Duration;
 
-static SIMULATION_LEGTH: Duration = Duration::new(30, 0);
+static SIMULATION_LEGTH: Duration = Duration::new(60, 0);
 static TIME_STEP: Duration = Duration::from_millis(20);
 
 fn main() {
