@@ -79,7 +79,6 @@ pub fn update_time_indicator(
         time.subsec_millis()
     );
 
-    for (_, mut text) in &mut query {
-        text.sections[0].value = time_string.clone();
-    }
+    let mut text = query.single_mut().1;
+    text.sections[0].value = time_string;
 }

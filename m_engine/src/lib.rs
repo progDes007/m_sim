@@ -10,6 +10,7 @@ pub mod generators;
 pub mod simulation;
 pub mod polygon;
 pub mod geometric_primitives;
+pub mod statistics;
 
 mod collision_utils;
 mod motion_resolver;
@@ -25,3 +26,4 @@ pub use integrator::Integrator;
 pub use velocity_verlet_integrator::VelocityVerletIntegrator;
 pub use polygon::Polygon;
 pub use geometric_primitives::{Plane, LineSegment};
+pub use statistics::Statistics;

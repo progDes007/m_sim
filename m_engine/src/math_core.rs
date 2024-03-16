@@ -16,3 +16,8 @@ pub(crate) fn solve_quadratic(a: f64, b: f64, c: f64) -> Option<(f64, f64)> {
     let t2 = (-b - sqrt_discriminant) / (2.0 * a);
     Some((t1, t2))
 }
+
+/// Returns energy of the particle with given mass and velocity.
+pub (crate) fn kinetic_energy(mass: f64, velocity: f64) -> f64 {
+    0.5 * mass * velocity * velocity
+}

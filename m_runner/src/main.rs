@@ -1,4 +1,4 @@
-use m_engine::{generators, wall_class, Polygon, Wall, WallClass};
+use m_engine::{generators, Statistics, Wall, WallClass};
 use m_engine::{Integrator, ParticleClass, Simulation, Vec2, VelocityVerletIntegrator};
 use m_front::{bevy_front, WallSkin};
 use m_front::{Frame, ParticleSkin};
@@ -53,7 +53,11 @@ fn main() {
         // Add 0 frame
         if let Err(_) = frames_tx.send((
             current_time.clone(),
-            Frame::new(simulation.particles().to_vec(), simulation.walls().to_vec()),
+            Frame::new(
+                simulation.particles().to_vec(),
+                simulation.walls().to_vec(),
+                Statistics::build(&simulation.particles(), simulation.particle_classes()),
+            ),
         )) {
             return;
         }
@@ -73,10 +77,19 @@ fn main() {
             // Return particles back
             simulation.put_particles(tmp_particles);
             current_time += TIME_STEP;
+
+            // Calc statistics
+            let statistics =
+                Statistics::build(simulation.particles(), simulation.particle_classes());
+
             // Send frame
             if let Err(_) = frames_tx.send((
                 current_time.clone(),
-                Frame::new(simulation.particles().to_vec(), simulation.walls().to_vec()),
+                Frame::new(
+                    simulation.particles().to_vec(),
+                    simulation.walls().to_vec(),
+                    statistics,
+                ),
             )) {
                 return;
             }

@@ -61,6 +61,7 @@ mod test {
     use super::*;
     use m_engine::prelude::ClassId;
     use m_engine::Particle;
+    use m_engine::Statistics;
     use m_engine::Vec2;
     use core::time;
     use std::sync::mpsc;
@@ -75,7 +76,7 @@ mod test {
                 Vec2::new(i as f64, i as f64), 
                 i as ClassId));
         }
-        Frame::new(particles, vec![])
+        Frame::new(particles, vec![], Statistics::default())
     }
 
     // Helper function that creates frame timeline and generate some frames.
