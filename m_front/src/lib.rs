@@ -12,6 +12,7 @@ mod systems
     pub(crate) mod playback;
     pub(crate) mod particles_update;
     pub(crate) mod walls_update;
+    pub(crate) mod statistics_update;
 }
 
 mod resources
@@ -31,10 +32,12 @@ mod components
     pub(crate) mod frames_timeline;
     pub(crate) mod playback_control;
     pub(crate) mod objects;
+    pub(crate) mod statistics;
 
     pub(crate) use frames_timeline::FramesTimeline;
     pub(crate) use playback_control::{PlaybackControl, TimeIndicator};
     pub(crate) use objects::Particle;
     pub(crate) use objects::Wall;
+    pub(crate) use statistics::StatisticsReport;
 }
 

@@ -1,4 +1,4 @@
-use crate::components::{FramesTimeline, PlaybackControl, TimeIndicator};
+use crate::components::{FramesTimeline, PlaybackControl, StatisticsReport, TimeIndicator};
 use crate::resources::{GlobalMaterials, GlobalMeshes, SimInfo, SkinGraphics, TextStyles};
 use crate::systems;
 use crate::{Frame, ParticleSkin, WallSkin};
@@ -35,6 +35,7 @@ pub fn run(
                 .after(systems::playback::poll_frames)
                 .after(systems::playback::read_user_input),
             systems::playback::update_time_indicator.after(systems::playback::advance_time),
+            systems::statistics_update::update_statistics.after(systems::playback::advance_time),
             systems::particles_update::particle_spawn_despawn
                 .after(systems::playback::advance_time),
             systems::walls_update::wall_spawn_despawn.after(systems::playback::advance_time),
@@ -94,13 +95,27 @@ fn setup(
         TimeIndicator {},
     ));
 
+    // Spawn entity for statistics report
+    commands.spawn((
+        // Create a TextBundle that has a Text with a single section.
+        TextBundle::from_section("Statistics", text_styles.main_style.clone())
+            .with_text_alignment(TextAlignment::Left)
+            .with_style(Style {
+                position_type: PositionType::Absolute,
+                top: Val::Px(5.0),
+                left: Val::Px(5.0),
+                ..default()
+            }),
+        StatisticsReport {},
+    ));
+
     // Spawn text for instructions
     commands.spawn(
         TextBundle::from_section(
             "Controls: [Space] - play/pause, [Left]/[Right] - rewind/forward",
             text_styles.main_style.clone(),
         )
-        .with_text_alignment(TextAlignment::Center)
+        .with_text_alignment(TextAlignment::Left)
         .with_style(Style {
             position_type: PositionType::Absolute,
             bottom: Val::Px(5.0),

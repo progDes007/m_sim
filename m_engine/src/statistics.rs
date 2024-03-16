@@ -2,6 +2,7 @@ use crate::math_core;
 use crate::prelude::*;
 use crate::{Particle, ParticleClass};
 use std::collections::HashMap;
+use std::fmt;
 
 #[derive(Debug, Clone)]
 pub struct Statistics {
@@ -32,5 +33,20 @@ impl Statistics {
         };
         res.total_energy = particles.iter().map(get_energy).sum();
         return res;
+    }
+
+    pub fn to_strings(&self) -> Vec<String> {
+        vec![
+            format!("Number of particles: {}", self.num_particles),
+            format!("Total energy: {}", self.total_energy),
+            // Add more strings as needed
+        ]
+    }
+}
+
+impl fmt::Display for Statistics {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let strings = self.to_strings();
+        write!(f, "{}", strings.join(", "))
     }
 }
