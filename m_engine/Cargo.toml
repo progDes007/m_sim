@@ -14,3 +14,5 @@ num-traits = "0.2.14"
 rand = "0.8.5"
 ordered-float = "4.2.0"
 statrs = "0.16.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_yaml = "0.9.33"

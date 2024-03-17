@@ -11,6 +11,7 @@ pub mod simulation;
 pub mod polygon;
 pub mod geometric_primitives;
 pub mod statistics;
+pub mod simulation_spec;
 
 mod collision_utils;
 mod motion_resolver;
