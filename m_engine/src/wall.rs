@@ -1,5 +1,5 @@
 use crate::prelude::*;
-use crate::Polygon;
+use crate::{Polygon, Vec2};
 
 #[derive(Clone, Debug)]
 pub struct Wall {
@@ -45,6 +45,22 @@ impl Wall {
         ));
 
         return walls;
+    }
+
+    // Makes straight wall from `from` to `to` with given width and class
+    // May return None if from == to
+    pub fn make_straight_wall(from: Vec2, to: Vec2, width: f64, class: ClassId) -> Option<Wall> {
+        let normal = (to - from).rotated_90_cw().normalized()?;
+        let half_width = width / 2.0;
+        return Some(Wall::new(
+            Polygon::from(vec![
+                from + normal * half_width,
+                to + normal * half_width,
+                to - normal * half_width,
+                from - normal * half_width,
+            ]),
+            class,
+        ));
     }
 
     pub fn class(&self) -> ClassId {
