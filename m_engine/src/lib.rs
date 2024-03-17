@@ -28,3 +28,4 @@ pub use velocity_verlet_integrator::VelocityVerletIntegrator;
 pub use polygon::Polygon;
 pub use geometric_primitives::{Plane, LineSegment};
 pub use statistics::Statistics;
+pub use simulation_spec::{SimulationSpec, ParticleClassSpec, WallClassSpec};

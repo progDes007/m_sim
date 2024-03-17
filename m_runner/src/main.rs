@@ -1,5 +1,5 @@
-use m_engine::{generators, Statistics, Wall, WallClass};
-use m_engine::{Integrator, ParticleClass, Simulation, Vec2, VelocityVerletIntegrator};
+use m_engine::Statistics;
+use m_engine::{Integrator, VelocityVerletIntegrator, SimulationSpec};
 use m_front::{bevy_front, WallSkin};
 use m_front::{Frame, ParticleSkin};
 
@@ -9,41 +9,100 @@ use std::collections::HashMap;
 use std::sync::mpsc;
 use std::time::Duration;
 
-static SIMULATION_LEGTH: Duration = Duration::new(60, 0);
-static TIME_STEP: Duration = Duration::from_millis(20);
 
 fn main() {
+
     let (frames_tx, frames_rx) = mpsc::channel();
 
-    // define classes
-    let mut particle_classes = HashMap::new();
+    let test_yaml = 
+    "
+    name: Test
+    duration:
+      secs: 30
+      nanos: 0
+    time_step:
+      secs: 0
+      nanos: 10000000
+    particle_classes:
+    - id: 0
+      name: test
+      mass: 2.0
+      radius: 1.0
+      color:
+      - 1.0
+      - 0.9
+      - 0.8
+      - 1.0
+    wall_classes:
+    - id: 0
+      name: wall
+      coefficient_of_restitution: 0.9
+      color:
+      - 0.5
+      - 0.5
+      - 0.5
+      - 1.0
+    particle_grids:
+    - class_id: 0
+      origin_x: -20.0
+      origin_y: -20.0
+      x_axis_angle: 0.0
+      dim_x: 40.0
+      dim_y: 40.0
+      num_cells_x: 10
+      num_cells_y: 10
+      mean_speed: 30.0
+    straight_walls:
+    - class_id: 0
+      from_x: -30.0
+      from_y: -30.0
+      to_x: 30.0
+      to_y: -30.0
+      width: 0.2
+    - class_id: 0
+      from_x: 30.0
+      from_y: -30.0
+      to_x: 30.0
+      to_y: 30.0
+      width: 0.2
+    - class_id: 0
+      from_x: 30.0
+      from_y: 30.0
+      to_x: -30.0
+      to_y: 30.0
+      width: 0.2
+    - class_id: 0
+      from_x: -30.0
+      from_y: 30.0
+      to_x: -30.0
+      to_y: -30.0
+      width: 0.2
+    ";
+
+    let spec_res = SimulationSpec::from_yaml(test_yaml);
+    if let Err(e) = spec_res {
+        println!("Error loading YAML simulation file: {}", e);
+        return;
+    }
+    let spec = spec_res.unwrap();
+
+    // Generate skins for particle
     let mut particle_skins = HashMap::new();
-    particle_classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
-    particle_skins.insert(1, ParticleSkin::new(1.0, Color::RED));
-
-    let mut wall_classes = HashMap::new();
-    wall_classes.insert(1, WallClass::new("Wall", 1.0));
+    for c in spec.particle_classes.iter() {
+        let skin = ParticleSkin::new(c.radius as f32, 
+            Color::rgba(c.color.0, c.color.1, c.color.2, c.color.3));
+        particle_skins.insert(c.id, skin);
+    }
+    // Generate skins for walls
     let mut wall_skins = HashMap::new();
-    wall_skins.insert(1, WallSkin::new(Color::WHITE));
+    for c in spec.wall_classes.iter() {
+        let skin = WallSkin::new(Color::rgba(c.color.0, c.color.1, c.color.2, c.color.3));
+        wall_skins.insert(c.id, skin);
+    }
 
-    // make simulation
-    let mut simulation = Simulation::new(particle_classes, wall_classes);
-
-    // spawn particles
-    simulation.spawn_particles(&generators::generate_grid(
-        Vec2::new(-20.0, -20.0),
-        Vec2::from_angle_rad(0.0),
-        30.0,
-        30.0,
-        12,
-        12,
-        generators::random_velocity(30.0),
-        1,
-    ));
-
-    // spawn walls
-    simulation.spawn_walls(&Wall::make_box(-50.0, -50.0, 50.0, 50.0, 1.0, 1));
-
+    // Build simulation from spec
+    let mut simulation = spec.build();
+    
     // make integrator
     let integrator = VelocityVerletIntegrator::new();
 
@@ -63,7 +122,7 @@ fn main() {
         }
 
         // Generate frames in a separate thread
-        while current_time < SIMULATION_LEGTH {
+        while current_time < spec.duration {
             // Take particles out to please borrow checker
             let mut tmp_particles = simulation.take_particles();
             // Update simulation
@@ -72,11 +131,11 @@ fn main() {
                 simulation.particle_classes(),
                 simulation.walls(),
                 simulation.wall_classes(),
-                TIME_STEP,
+                spec.time_step,
             );
             // Return particles back
             simulation.put_particles(tmp_particles);
-            current_time += TIME_STEP;
+            current_time += spec.time_step;
 
             // Calc statistics
             let statistics =
@@ -99,7 +158,7 @@ fn main() {
         }
     });
 
-    bevy_front::run(frames_rx, SIMULATION_LEGTH, particle_skins, wall_skins);
+    bevy_front::run(frames_rx, spec.duration, particle_skins, wall_skins);
 
     handle.join().unwrap();
 }
