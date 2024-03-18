@@ -21,10 +21,10 @@ pub fn read_user_input(
     }
 
     if input.pressed(KeyCode::Right) {
-        playback_control.set_rewind(Some(2.0));
+        playback_control.set_rewind(Some(5.0));
     }
     else if input.pressed(KeyCode::Left) {
-        playback_control.set_rewind(Some(-2.0));
+        playback_control.set_rewind(Some(-5.0));
     }
     else {
         playback_control.set_rewind(None);

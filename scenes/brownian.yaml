@@ -1,61 +1,79 @@
 name: Brownian motion
 duration:
-  secs: 30
+  secs: 60
   nanos: 0
 time_step:
   secs: 0
   nanos: 10000000
 particle_classes:
 - id: 0
-  name: test
-  mass: 2.0
-  radius: 1.0
+  name: small
+  mass: 3.0
+  radius: 0.5
+  color:
+  - 0.2
+  - 0.2
+  - 0.2
+  - 1.0
+- id: 1
+  name: large
+  mass: 196.0
+  radius: 8.0
   color:
   - 1.0
-  - 0.9
-  - 0.8
+  - 0.5
+  - 1.0
   - 1.0
 wall_classes:
 - id: 0
   name: wall
-  coefficient_of_restitution: 0.9
+  coefficient_of_restitution: 1.0
   color:
-  - 0.5
-  - 0.5
-  - 0.5
+  - 1.0
+  - 1.0
+  - 1.0
   - 1.0
 particle_grids:
 - class_id: 0
-  origin_x: -20.0
-  origin_y: -20.0
+  origin_x: -85.0
+  origin_y: -65.0
   x_axis_angle: 0.0
-  dim_x: 40.0
-  dim_y: 40.0
-  num_cells_x: 10
-  num_cells_y: 10
-  mean_speed: 30.0
+  dim_x: 170.0
+  dim_y: 130.0
+  num_cells_x: 40
+  num_cells_y: 40
+  mean_speed: 60.0
+- class_id: 1
+  origin_x: -40.0
+  origin_y: -40.0
+  x_axis_angle: 0.0
+  dim_x: 80.0
+  dim_y: 80.0
+  num_cells_x: 1
+  num_cells_y: 1
+  mean_speed: 0.0
 straight_walls:
 - class_id: 0
-  from_x: -30.0
-  from_y: -30.0
-  to_x: 30.0
-  to_y: -30.0
+  from_x: -90.0
+  from_y: -70.0
+  to_x: 90.0
+  to_y: -70.0
   width: 0.2
 - class_id: 0
-  from_x: 30.0
-  from_y: -30.0
-  to_x: 30.0
-  to_y: 30.0
+  from_x: 90.0
+  from_y: -70.0
+  to_x: 90.0
+  to_y: 70.0
   width: 0.2
 - class_id: 0
-  from_x: 30.0
-  from_y: 30.0
-  to_x: -30.0
-  to_y: 30.0
+  from_x: 90.0
+  from_y: 70.0
+  to_x: -90.0
+  to_y: 70.0
   width: 0.2
 - class_id: 0
-  from_x: -30.0
-  from_y: 30.0
-  to_x: -30.0
-  to_y: -30.0
+  from_x: -90.0
+  from_y: 70.0
+  to_x: -90.0
+  to_y: -70.0
   width: 0.2
