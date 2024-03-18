@@ -8,78 +8,27 @@ use bevy::prelude::Color;
 use std::collections::HashMap;
 use std::sync::mpsc;
 use std::time::Duration;
+use std::env;
 
 
 fn main() {
+    let args: Vec<String> = env::args().collect();
+    if args.len() != 2 {
+        println!("Usage: m_runner <path_to_yaml>");
+        return;
+    }
 
-    let (frames_tx, frames_rx) = mpsc::channel();
+    // Try read yaml
+    let file_contents = match std::fs::read_to_string(&args[1]) {
+        Ok(contents) => contents,
+        Err(e) => {
+            println!("Error reading file: {}", e);
+            return;
+        }
+    };
 
-    let test_yaml = 
-    "
-    name: Test
-    duration:
-      secs: 30
-      nanos: 0
-    time_step:
-      secs: 0
-      nanos: 10000000
-    particle_classes:
-    - id: 0
-      name: test
-      mass: 2.0
-      radius: 1.0
-      color:
-      - 1.0
-      - 0.9
-      - 0.8
-      - 1.0
-    wall_classes:
-    - id: 0
-      name: wall
-      coefficient_of_restitution: 0.9
-      color:
-      - 0.5
-      - 0.5
-      - 0.5
-      - 1.0
-    particle_grids:
-    - class_id: 0
-      origin_x: -20.0
-      origin_y: -20.0
-      x_axis_angle: 0.0
-      dim_x: 40.0
-      dim_y: 40.0
-      num_cells_x: 10
-      num_cells_y: 10
-      mean_speed: 30.0
-    straight_walls:
-    - class_id: 0
-      from_x: -30.0
-      from_y: -30.0
-      to_x: 30.0
-      to_y: -30.0
-      width: 0.2
-    - class_id: 0
-      from_x: 30.0
-      from_y: -30.0
-      to_x: 30.0
-      to_y: 30.0
-      width: 0.2
-    - class_id: 0
-      from_x: 30.0
-      from_y: 30.0
-      to_x: -30.0
-      to_y: 30.0
-      width: 0.2
-    - class_id: 0
-      from_x: -30.0
-      from_y: 30.0
-      to_x: -30.0
-      to_y: -30.0
-      width: 0.2
-    ";
-
-    let spec_res = SimulationSpec::from_yaml(test_yaml);
+    // Parse yaml
+    let spec_res = SimulationSpec::from_yaml(&file_contents);
     if let Err(e) = spec_res {
         println!("Error loading YAML simulation file: {}", e);
         return;
@@ -105,6 +54,9 @@ fn main() {
     
     // make integrator
     let integrator = VelocityVerletIntegrator::new();
+
+    // Channel for communicating with working thread
+    let (frames_tx, frames_rx) = mpsc::channel();
 
     // Launch the thread that generate frames
     let handle = std::thread::spawn(move || {
