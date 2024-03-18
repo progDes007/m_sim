@@ -75,7 +75,10 @@ fn setup(
 ) {
     // Spawn orthogonal camera
     let mut camera_bundle = Camera2dBundle::default();
-    camera_bundle.projection.scale = 1.0 / 5.0;
+    camera_bundle.projection.scaling_mode = bevy::render::camera::ScalingMode::AutoMin {
+        min_width: 200.0,
+        min_height: 160.0,
+    };
     commands.spawn(camera_bundle);
 
     // Spawn entity for playback control
