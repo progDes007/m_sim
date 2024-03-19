@@ -5,6 +5,7 @@ use crate::{Frame, ParticleSkin, WallSkin};
 use bevy::app::App;
 use bevy::prelude::*;
 use bevy::sprite::ColorMaterial;
+use bevy::window::{Window, WindowPlugin};
 use bevy::DefaultPlugins;
 use m_engine::prelude::*;
 use std::collections::HashMap;
@@ -12,6 +13,7 @@ use std::sync::mpsc::Receiver;
 use std::time::Duration;
 
 pub fn run(
+    window_name: &str,
     frames_rx: Receiver<(Duration, Frame)>,
     total_duration: Duration,
     particle_skins: HashMap<ClassId, ParticleSkin>,
@@ -22,7 +24,15 @@ pub fn run(
     std::env::set_var("WGPU_BACKEND", "dx12");
 
     let mut app = App::new();
-    app.add_plugins(DefaultPlugins);
+
+    let app_window: Option<Window> = Some(Window {
+        title: window_name.to_string(),
+        ..default()
+    });
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: app_window,
+        ..default()
+    }));
 
     app.add_systems(Startup, (setup, generate_skin_graphics));
     app.add_systems(PostStartup, systems::playback::start_playback);

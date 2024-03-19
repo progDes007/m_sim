@@ -1,15 +1,14 @@
 use m_engine::Statistics;
-use m_engine::{Integrator, VelocityVerletIntegrator, SimulationSpec};
+use m_engine::{Integrator, SimulationSpec, VelocityVerletIntegrator};
 use m_front::{bevy_front, WallSkin};
 use m_front::{Frame, ParticleSkin};
 
 use bevy::prelude::Color;
 
 use std::collections::HashMap;
+use std::env;
 use std::sync::mpsc;
 use std::time::Duration;
-use std::env;
-
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -38,8 +37,10 @@ fn main() {
     // Generate skins for particle
     let mut particle_skins = HashMap::new();
     for c in spec.particle_classes.iter() {
-        let skin = ParticleSkin::new(c.radius as f32, 
-            Color::rgba(c.color.0, c.color.1, c.color.2, c.color.3));
+        let skin = ParticleSkin::new(
+            c.radius as f32,
+            Color::rgba(c.color.0, c.color.1, c.color.2, c.color.3),
+        );
         particle_skins.insert(c.id, skin);
     }
     // Generate skins for walls
@@ -51,7 +52,7 @@ fn main() {
 
     // Build simulation from spec
     let mut simulation = spec.build();
-    
+
     // make integrator
     let integrator = VelocityVerletIntegrator::new();
 
@@ -111,7 +112,13 @@ fn main() {
         }
     });
 
-    bevy_front::run(frames_rx, spec.duration, particle_skins, wall_skins);
+    bevy_front::run(
+        &spec.name,
+        frames_rx,
+        spec.duration,
+        particle_skins,
+        wall_skins,
+    );
 
     handle.join().unwrap();
 }
