@@ -1,6 +1,6 @@
+use crate::generators;
 use crate::{prelude::*, Vec2};
 use crate::{ParticleClass, Simulation, Wall, WallClass};
-use crate::generators;
 use serde::{Deserialize, Serialize};
 use serde_yaml;
 use std::collections::HashMap;
@@ -59,6 +59,7 @@ pub struct SimulationSpec {
     pub name: String,
     pub duration: Duration,
     pub time_step: Duration,
+    pub gravity: f64,
     pub particle_classes: Vec<ParticleClassSpec>,
     pub wall_classes: Vec<WallClassSpec>,
     pub particle_grids: Vec<SpawnParticlesGrid>,
@@ -71,6 +72,7 @@ impl Default for SimulationSpec {
             name: "Unnamed".to_string(),
             duration: Duration::from_secs(10),
             time_step: Duration::from_millis(10),
+            gravity: 0.0,
             particle_classes: Vec::new(),
             wall_classes: Vec::new(),
             particle_grids: Vec::new(),
@@ -98,7 +100,7 @@ impl SimulationSpec {
             w_classes.insert(class.id, w_class);
         }
 
-        let mut sim = Simulation::new(p_classes, w_classes);
+        let mut sim = Simulation::new(p_classes, w_classes, self.gravity);
         // Spawn grids
         for grid in &self.particle_grids {
             sim.spawn_particles(&generators::generate_grid(
@@ -138,6 +140,7 @@ mod tests {
             name: "Test".to_string(),
             duration: Duration::from_millis(10100),
             time_step: Duration::from_millis(10),
+            gravity: 9.8,
             particle_classes: vec![
                 ParticleClassSpec {
                     id: 0,

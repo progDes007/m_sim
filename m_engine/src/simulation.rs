@@ -8,18 +8,21 @@ pub struct Simulation {
     particles: Vec<Particle>,
     wall_classes: HashMap<ClassId, WallClass>,
     walls: Vec<Wall>,
+    gravity: f64
 }
 
 impl Simulation {
     pub fn new(
         particle_classes: HashMap<ClassId, ParticleClass>,
         wall_classes: HashMap<ClassId, WallClass>,
+        gravity: f64
     ) -> Self {
         Simulation {
             particle_classes,
             particles: Vec::new(),
             wall_classes,
             walls: Vec::new(),
+            gravity,
         }
     }
 
@@ -49,6 +52,10 @@ impl Simulation {
 
     pub fn walls(&self) -> &[Wall] {
         &self.walls
+    }
+
+    pub fn gravity(&self) -> f64 {
+        self.gravity
     }
 
     pub fn spawn_particle(&mut self, particle: Particle) {
@@ -87,7 +94,7 @@ mod tests {
         classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
         classes.insert(20, ParticleClass::new("Class20", 2.0, 1.0));
 
-        let mut simulation = Simulation::new(classes, HashMap::new());
+        let mut simulation = Simulation::new(classes, HashMap::new(), 0.0);
 
         // Spawn single
         simulation.spawn_particle(Particle::new(Vec2::ZERO, Vec2::ZERO, 1));
@@ -113,7 +120,7 @@ mod tests {
 
         let polygon = Polygon::new_rectangle(0.0, 0.0, 1.0, 1.0);
 
-        let mut simulation = Simulation::new(HashMap::new(), classes);
+        let mut simulation = Simulation::new(HashMap::new(), classes, 0.0);
 
         // Spawn single
         simulation.spawn_wall(Wall::new(polygon.clone(), 1));

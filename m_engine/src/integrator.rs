@@ -10,6 +10,7 @@ pub trait Integrator {
         particle_classes: &HashMap<ClassId, ParticleClass>,
         walls: &[Wall],
         wall_classes: &HashMap<ClassId, WallClass>,
+        gravity: f64,
         time_step: Duration,
     );
 }

@@ -5,24 +5,15 @@ duration:
 time_step:
   secs: 0
   nanos: 10000000
-gravity: 0.0
+gravity: 20.0
 particle_classes:
 - id: 0
   name: small
   mass: 3.0
   radius: 0.5
   color:
-  - 0.2
-  - 0.2
-  - 0.2
   - 1.0
-- id: 1
-  name: large
-  mass: 196.0
-  radius: 8.0
-  color:
   - 1.0
-  - 0.5
   - 1.0
   - 1.0
 wall_classes:
@@ -41,18 +32,9 @@ particle_grids:
   x_axis_angle: 0.0
   dim_x: 170.0
   dim_y: 130.0
-  num_cells_x: 40
-  num_cells_y: 40
+  num_cells_x: 30
+  num_cells_y: 30
   mean_speed: 60.0
-- class_id: 1
-  origin_x: -40.0
-  origin_y: -40.0
-  x_axis_angle: 0.0
-  dim_x: 80.0
-  dim_y: 80.0
-  num_cells_x: 1
-  num_cells_y: 1
-  mean_speed: 0.0
 straight_walls:
 - class_id: 0
   from_x: -90.0

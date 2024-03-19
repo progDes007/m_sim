@@ -83,6 +83,7 @@ fn main() {
                 simulation.particle_classes(),
                 simulation.walls(),
                 simulation.wall_classes(),
+                simulation.gravity(),
                 spec.time_step,
             );
             // Return particles back
