@@ -21,3 +21,9 @@ pub(crate) fn solve_quadratic(a: f64, b: f64, c: f64) -> Option<(f64, f64)> {
 pub (crate) fn kinetic_energy(mass: f64, velocity: f64) -> f64 {
     0.5 * mass * velocity * velocity
 }
+
+/// Converts kinetic energy to temperature
+pub (crate) fn temp_from_energy(energy : f64) -> f64 {
+    // assume Boltzmann constant = 1
+    energy * 3.0 / 2.0
+}

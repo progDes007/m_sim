@@ -9,8 +9,7 @@ use statrs::statistics;
 pub struct Statistics {
     pub num_particles: usize,
     pub total_energy: f64,
-    pub mean_energy: f64,
-    pub stddev_energy: f64,
+    pub temperature: f64,
 }
 
 impl Default for Statistics {
@@ -18,8 +17,7 @@ impl Default for Statistics {
         Self {
             num_particles: 0,
             total_energy: 0.0,
-            mean_energy: 0.0,
-            stddev_energy: 0.0,
+            temperature: 0.0,
         }
     }
 }
@@ -37,10 +35,10 @@ impl Statistics {
             return math_core::kinetic_energy(class.mass(), p.velocity.length());
         };
         let energies : Vec<f64> = particles.iter().map(get_energy).collect();
+        let temps : Vec<f64> = energies.iter().map(|&e| math_core::temp_from_energy(e)).collect();
         // Calc mean and variance
-        res.mean_energy = statistics::Statistics::mean(&energies);
-        res.stddev_energy = statistics::Statistics::variance(&energies).sqrt();
-        res.total_energy = res.mean_energy * res.num_particles as f64;
+        res.temperature = statistics::Statistics::mean(&temps);
+        res.total_energy = energies.iter().sum();
 
         return res;
     }
@@ -49,8 +47,7 @@ impl Statistics {
         vec![
             format!("Number of particles: {}", self.num_particles),
             format!("Total energy: {}", self.total_energy),
-            format!("Mean energy: {}", self.mean_energy),
-            format!("Stddev energy: {}", self.stddev_energy),
+            format!("Temperature: {} simuK", self.temperature),
             // Add more strings as needed
         ]
     }
