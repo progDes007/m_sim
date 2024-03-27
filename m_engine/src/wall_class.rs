@@ -2,7 +2,8 @@
 /// Wall class. Describes the properties of the wall.
 pub struct WallClass {
     name: String,
-    coefficient_of_restitution: f64,
+    temperature: f64,
+    heat_conductivity: f64,
 }
 
 impl WallClass {
@@ -11,13 +12,13 @@ impl WallClass {
     /// # Arguments
     ///
     /// * `name` - The name of the wall.
-    /// * `coefficient_of_restitution` - The coefficient of restitution for the wall.
-    /// if coefficient_of_restitution > 1.0 - the wall acts as source of energy
-    /// if coefficient_of_restitution < 1.0 - the wall acts as sink of energy
-    pub fn new(name: &str, coefficient_of_restitution: f64) -> Self {
+    /// * `temperature` - The temperature of the wall.
+    /// * `heat_conductivity` - The heat conductivity of the wall.
+    pub fn new(name: &str, temperature: f64, heat_conductivity: f64) -> Self {
         WallClass {
             name: name.to_string(),
-            coefficient_of_restitution,
+            temperature,
+            heat_conductivity,
         }
     }
 
@@ -26,8 +27,13 @@ impl WallClass {
         &self.name
     }
 
-    /// Get the coefficient of restitution for the wall.
-    pub fn coefficient_of_restitution(&self) -> f64 {
-        self.coefficient_of_restitution
+    /// Temperature of the wall
+    pub fn temperature(&self) -> f64 {
+        self.temperature
+    }
+
+    /// Heat conductivity of the wall
+    pub fn heat_conductivity(&self) -> f64 {
+        self.heat_conductivity
     }
 }

@@ -24,7 +24,8 @@ pub struct ParticleClassSpec {
 pub struct WallClassSpec {
     pub id: ClassId,
     pub name: String,
-    pub coefficient_of_restitution: f64,
+    pub temperature: f64,
+    pub heat_conductivity: f64,
     pub color: RGBA,
 }
 
@@ -96,7 +97,7 @@ impl SimulationSpec {
         // Make wall classes map
         let mut w_classes = HashMap::new();
         for class in &self.wall_classes {
-            let w_class = WallClass::new(&class.name, class.coefficient_of_restitution);
+            let w_class = WallClass::new(&class.name, class.temperature, class.heat_conductivity);
             w_classes.insert(class.id, w_class);
         }
 
@@ -161,13 +162,15 @@ mod tests {
                 WallClassSpec {
                     id: 0,
                     name: "wall".to_string(),
-                    coefficient_of_restitution: 0.5,
+                    temperature: 10.0,
+                    heat_conductivity: 0.5,
                     color: RGBA(0.5, 0.5, 0.5, 0.5),
                 },
                 WallClassSpec {
                     id: 1,
                     name: "wall2".to_string(),
-                    coefficient_of_restitution: 0.6,
+                    temperature: 100.0,
+                    heat_conductivity: 0.8,
                     color: RGBA(0.6, 0.6, 0.6, 0.6),
                 },
             ],

@@ -32,7 +32,7 @@ impl Statistics {
 
         let get_energy = |p: &Particle| {
             let class = particle_classes.get(&p.class()).expect("Particle class expected in the map");
-            return math_core::kinetic_energy(class.mass(), p.velocity.length());
+            return math_core::kinetic_energy_from_velocity(class.mass(), p.velocity.length());
         };
         let energies : Vec<f64> = particles.iter().map(get_energy).collect();
         let temps : Vec<f64> = energies.iter().map(|&e| math_core::temp_from_energy(e)).collect();

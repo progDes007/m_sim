@@ -28,7 +28,8 @@ particle_classes:
 wall_classes:
 - id: 0
   name: wall
-  coefficient_of_restitution: 1.0
+  temperature: 0.0
+  heat_conductivity: 0.0
   color:
   - 1.0
   - 1.0

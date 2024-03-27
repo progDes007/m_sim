@@ -115,8 +115,8 @@ mod tests {
     #[test]
     fn test_spawn_walls() {
         let mut classes = HashMap::new();
-        classes.insert(1, WallClass::new("Class1", 0.9));
-        classes.insert(20, WallClass::new("Class20", 1.1));
+        classes.insert(1, WallClass::new("Class1", 100.0, 0.0));
+        classes.insert(20, WallClass::new("Class20", 110.0, 1.0));
 
         let polygon = Polygon::new_rectangle(0.0, 0.0, 1.0, 1.0);
 

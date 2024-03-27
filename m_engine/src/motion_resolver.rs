@@ -329,7 +329,7 @@ pub(crate) fn resolve(
 }
 
 pub fn default_particle_vs_particle_velocity_resovler<'a>(
-    particle_classes: &'a HashMap<ClassId, ParticleClass>
+    particle_classes: &'a HashMap<ClassId, ParticleClass>,
 ) -> impl Fn(&Particle, &Particle, Vec2) -> (Vec2, Vec2) + 'a {
     move |p1: &Particle, p2: &Particle, n: Vec2| {
         collision_utils::particles_collision_separation_velocity(
@@ -344,13 +344,18 @@ pub fn default_particle_vs_particle_velocity_resovler<'a>(
 }
 
 pub fn default_particle_vs_wall_velocity_resolver<'a>(
-    wall_classes: &'a HashMap<ClassId, WallClass>
+    particle_classes: &'a HashMap<ClassId, ParticleClass>,
+    wall_classes: &'a HashMap<ClassId, WallClass>,
 ) -> impl Fn(&Particle, &Wall, Vec2) -> Vec2 + 'a {
     move |p: &Particle, w: &Wall, n: Vec2| {
+        let wall_class = wall_classes.get(&w.class()).unwrap();
+        let particle_class = particle_classes.get(&p.class()).unwrap();
         collision_utils::particles_vs_wall_collision_separation_velocity(
             p.velocity,
+            particle_class.mass(),
             n,
-            wall_classes.get(&w.class()).unwrap().coefficient_of_restitution(),
+            wall_class.temperature(),
+            wall_class.heat_conductivity(),
         )
     }
 }
@@ -358,7 +363,7 @@ pub fn default_particle_vs_wall_velocity_resolver<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{math_core, Polygon, WallClass};
+    use crate::{math_core, wall_class, Polygon, WallClass};
 
     // Test the ordered binary heap of collisions
     #[test]
@@ -567,17 +572,17 @@ mod tests {
     #[test]
     pub fn test_resolve() {
         // Add couple of classes. All particles have the same mass.
-        // Combined with coefficient of restitution of 1 - it will lead to simpler numbers
-        // and easier to analyze code.
+        // Combined with wall 0 heat conductivity
         let mut classes = HashMap::new();
         classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
         classes.insert(2, ParticleClass::new("Class2", 1.0, 2.0));
-        let wall_classes = HashMap::new();
+        let mut wall_classes = HashMap::new();
+        wall_classes.insert(1, WallClass::new("Wall1", 100.0, 0.0));
         // Lamda that resolve velocity
         let resolve_velocity = default_particle_vs_particle_velocity_resovler(&classes);
 
         // resolver with walls. Is not needed
-        let resolve_wall = default_particle_vs_wall_velocity_resolver(&wall_classes);
+        let resolve_wall = default_particle_vs_wall_velocity_resolver(&classes, &wall_classes);
 
         // Add particles
         let mut particles = vec![
@@ -671,14 +676,13 @@ mod tests {
         let mut particle_classes = HashMap::new();
         particle_classes.insert(1, ParticleClass::new("Class1", 1.0, 1.0));
         let mut wall_classes = HashMap::new();
-        wall_classes.insert(1, WallClass::new("Wall", 1.0));
-
+        wall_classes.insert(1, WallClass::new("Wall", 100.0, 0.0));
 
         // Lamda that resolve velocity
         let resolve_p_p = default_particle_vs_particle_velocity_resovler(&particle_classes);
-        let resolve_p_w = default_particle_vs_wall_velocity_resolver(&wall_classes);
-        
-        
+        let resolve_p_w =
+            default_particle_vs_wall_velocity_resolver(&particle_classes, &wall_classes);
+
         // Make a box for a scene (about 8x8 on the inside)
         let walls = Wall::make_box(-5.0, -5.0, 5.0, 5.0, 1.0, 1);
         // Add some particles flying in random directions
@@ -731,5 +735,4 @@ mod tests {
             assert!(p1.velocity.approx_eq(p2.velocity, eps));
         }
     }
-
 }

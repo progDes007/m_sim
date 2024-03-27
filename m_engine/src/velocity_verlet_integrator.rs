@@ -1,6 +1,6 @@
+use crate::motion_resolver;
 use crate::prelude::*;
-use crate::{motion_resolver};
-use crate::{Vec2, Integrator, Particle, ParticleClass, Wall, WallClass};
+use crate::{Integrator, Particle, ParticleClass, Vec2, Wall, WallClass};
 use std::collections::HashMap;
 use std::time::Duration;
 
@@ -27,15 +27,18 @@ impl Integrator for VelocityVerletIntegrator {
 
         // apply gravity
         for particle in particles.iter_mut() {
-            particle.velocity = particle.velocity - Vec2::new(0.0, gravity * time_step.as_secs_f64());
+            particle.velocity =
+                particle.velocity - Vec2::new(0.0, gravity * time_step.as_secs_f64());
         }
 
         // Lamda that resolve velocity
         let particle_vs_particle_resolver =
             motion_resolver::default_particle_vs_particle_velocity_resovler(particle_classes);
-        let particle_vs_wall_resolver =
-            motion_resolver::default_particle_vs_wall_velocity_resolver(wall_classes);
-        
+        let particle_vs_wall_resolver = motion_resolver::default_particle_vs_wall_velocity_resolver(
+            particle_classes,
+            wall_classes,
+        );
+
         motion_resolver::resolve(
             particles,
             particle_classes,

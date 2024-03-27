@@ -1,4 +1,6 @@
-use crate::prelude::DOUBLE_COMPARE_EPS_STRICT;
+use num_traits::Float;
+
+use crate::prelude::{DISTANCE_EPS, DOUBLE_COMPARE_EPS_STRICT};
 use crate::{math_core, LineSegment};
 use crate::{Plane, Polygon, Vec2};
 use std::option::Option;
@@ -240,12 +242,64 @@ pub(crate) fn particles_collision_separation_velocity(
 /// Calculate separation velocity after collision
 pub(crate) fn particles_vs_wall_collision_separation_velocity(
     velocity1: Vec2,
+    mass1: f64,
     collision_normal: Vec2,
-    coefficient_of_restitution: f64,
+    wall_temperature: f64,
+    wall_heat_conductivity: f64,
 ) -> Vec2 {
-    // Because wall is immoveable - we don't need real mass
-    let impulse = collision_impulse_stationary(1.0, velocity1, collision_normal, coefficient_of_restitution);
-    return apply_impulse(1.0, velocity1, collision_normal * impulse);
+
+    // If particle not moving - return nothing
+    let direction_opt = velocity1.normalized();
+    if direction_opt.is_none() {
+        return velocity1;
+    }
+
+    // Total energy of the particle and wall
+    let sampled_temperature = math_core::random_0_to_mean(wall_temperature);
+    let wall_energy = math_core::energy_from_temp(sampled_temperature);
+    let particle_energy = math_core::kinetic_energy_from_velocity(mass1, velocity1.length());
+
+    // The amount of energy gained or lost depends on the collision angle
+    let angle_dot = -direction_opt.unwrap().dot(collision_normal);
+    // Tricky moment. The proportion of velocity that can be traded depends on angle of collision
+    // But proportion of energy that can be traded depends on square of that.
+    let sq_angle_dot = angle_dot * angle_dot;
+
+    let delta_e = (wall_energy - particle_energy) * sq_angle_dot * wall_heat_conductivity;
+
+    // First simmulate the collision with energy loss (or gain) (fully elastic)
+    let impulse = collision_impulse_stationary(mass1, velocity1, collision_normal, 1.0);
+    let res_v = apply_impulse(mass1, velocity1, collision_normal * impulse);
+    // Then apply additional impulse based on delta_e
+    // Calculate the velocity we would need to have to match the eneragy
+    let expected_velocity = math_core::velocity_from_kinetic_energy(mass1, particle_energy + delta_e);
+    // Now calculate what kind of dv to apply along normal to current velocity so that
+    // epxected velocity magnitude is reached
+    // Let's write some system of equation.
+    // rv.x = x * n.x + cv.x
+    // rv.y = x * n.y + cv.y
+    // sqrt(rv.x^2 + rv.y^2) = expected_velocity
+    // Substitute:
+    // sqrt((x * n.x + cv.x)^2 + (x * n.y + cv.y)^2) = expected_velocity
+    // (x * n.x + cv.x)^2 + (x * n.y + cv.y)^2 = expected_velocity^2
+    // Bring it to standard quadratic equation form. go very slow:
+    // x^2 * (n.x^2 + n.y^2) + 2(x * n.x * cv.x + x * n.y * cv.y) + cv.x^2 + cv.y^2 = expected_velocity^2
+    // x^2 * (n.x^2 + n.y^2) + 2(x * n.x * cv.x + x * n.y * cv.y) + cv.x^2 + cv.y^2 - expected_velocity^2 = 0
+    // (n.x^2 + n.y^2)x^2 + 2(n.x * cv.x + n.y * cv.y)x + (cv.x^2 + cv.y^2 - expected_velocity^2) = 0
+    let a = collision_normal.x * collision_normal.x + collision_normal.y * collision_normal.y;
+    let b = 2.0 * (collision_normal.x * res_v.x + collision_normal.y * res_v.y);
+    let c = res_v.x * res_v.x + res_v.y * res_v.y - expected_velocity * expected_velocity;
+    let dv = math_core::solve_quadratic(a, b, c).expect("No solution for dv");
+    // pick dv that has smaller magnitude
+    let dv = if dv.0.abs() < dv.1.abs() { dv.0 } else { dv.1 };
+
+    let final_v = res_v + dv * collision_normal;
+    // Validate that our velocity is indeed correct
+    if !math_core::approx_eq(final_v.length(), expected_velocity, DISTANCE_EPS)
+    {
+        println!("Final velocity is not correct:");
+    }
+    return final_v;
 }
 
 #[cfg(test)]
