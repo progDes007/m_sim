@@ -1,5 +1,3 @@
-use num_traits::Float;
-
 use crate::prelude::{DISTANCE_EPS, DOUBLE_COMPARE_EPS_STRICT};
 use crate::{math_core, LineSegment};
 use crate::{Plane, Polygon, Vec2};
