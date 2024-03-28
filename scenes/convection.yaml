@@ -10,7 +10,7 @@ particle_classes:
 - id: 0
   name: small
   mass: 3.0
-  radius: 0.8
+  radius: 1.0
   color:
   - 1.0
   - 1.0
